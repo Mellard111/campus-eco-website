@@ -316,11 +316,29 @@ function renderActivities(filter = "全部") {
     if (!el) return;
     const events = getActivities();
     const filtered = filter === "全部" ? events : events.filter(e => e.status === filter);
+    const user = getCurrentUser();
+
     if (filtered.length === 0) {
         el.innerHTML = `<div class="empty-state"><p>暂无相关活动</p></div>`;
         return;
     }
-    el.innerHTML = filtered.map(e => `
+
+    el.innerHTML = filtered.map(e => {
+        let signupBtn = "";
+        if (user && user.role !== "admin") {
+            const mySignup = getSignups().find(s => s.userId === user.id && s.activityId === e.id);
+            if (mySignup) {
+                const statusText = mySignup.status === "approved" ? "✓ 已通过" : mySignup.status === "rejected" ? "✗ 已拒绝" : "⏳ 审核中";
+                const statusColor = mySignup.status === "approved" ? "var(--emerald-700)" : mySignup.status === "rejected" ? "#ef4444" : "#f59e0b";
+                signupBtn = `<button class="btn btn-outline" disabled style="color:${statusColor};border-color:${statusColor};cursor:default;">${statusText}</button>`;
+            } else {
+                signupBtn = `<button class="btn btn-primary" onclick="handleSignup('${e.id}','${e.title.replace(/'/g, "\\'")}')">立即报名</button>`;
+            }
+        } else if (!user) {
+            signupBtn = `<button class="btn btn-primary" onclick="location.href='login.html'">登录报名</button>`;
+        }
+
+        return `
         <div class="event-item">
             <div class="event-thumb" style="width:100px;height:100px;font-size:44px;">${e.emoji}</div>
             <div class="event-info">
@@ -333,12 +351,22 @@ function renderActivities(filter = "全部") {
                     <span class="time">🕐 ${e.time}</span>
                     <div style="display:flex;gap:8px;align-items:center;">
                         <span class="event-status ${e.status === '报名中' ? 'status-open' : 'status-wait'}">${e.status}</span>
+                        ${signupBtn}
                         <button class="btn btn-ghost" style="padding:2px 8px;font-size:12px;" onclick="shareActivity('${e.title}','${e.place}','${e.time}')">📤</button>
                     </div>
                 </div>
             </div>
         </div>
-    `).join("");
+        `;
+    }).join("");
+}
+
+function handleSignup(activityId, activityTitle) {
+    const user = getCurrentUser();
+    if (!user) { location.href = "login.html"; return; }
+    const result = signupActivity(user.id, user.username, activityId, activityTitle);
+    showToast(result.message, result.success ? "success" : "");
+    renderActivities();
 }
 
 function shareActivity(title, place, time) {
@@ -393,7 +421,13 @@ function openCheckin(kind) {
         `;
     }
 
-    body.innerHTML = formHtml;
+    body.innerHTML = formHtml + `
+        <div class="form-group" style="margin-top:14px;">
+            <label>上传打卡凭证（图片/文件）</label>
+            <input type="file" id="ci_proof" accept="image/*,.pdf,.doc,.docx" required>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">需管理员审核通过后才会发放积分</p>
+        </div>
+    `;
     modal.dataset.kind = kind;
     modal.classList.add("open");
 }
@@ -415,15 +449,34 @@ function confirmCheckin() {
         options.weightKg = document.getElementById("ci_weight").value;
     }
 
-    const result = doCheckin(user.id, kind, options);
-    if (result.success) {
-        showToast(result.message, "success");
-        closeCheckin();
-        renderHeroStats();
-        renderCheckinCards();
-    } else {
-        showToast(result.message);
+    // 读取上传的凭证文件
+    const fileInput = document.getElementById("ci_proof");
+    if (!fileInput.files || fileInput.files.length === 0) {
+        showToast("请上传打卡凭证");
+        return;
     }
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        options.proof = e.target.result; // base64
+        options.proofName = file.name;
+
+        const result = doCheckin(user.id, kind, options);
+        if (result.success) {
+            showToast(result.message, "success");
+            closeCheckin();
+            renderHeroStats();
+            renderCheckinCards();
+            fileInput.value = "";
+        } else {
+            showToast(result.message);
+        }
+    };
+    reader.onerror = function() {
+        showToast("文件读取失败，请重试");
+    };
+    reader.readAsDataURL(file);
 }
 
 // 页面加载

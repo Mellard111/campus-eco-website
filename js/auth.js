@@ -4,19 +4,73 @@ const SESSION_KEY = "campus_eco_session";
 
 // 学院列表
 const COLLEGES = [
-    "环境科学与工程学院",
     "计算机学院",
-    "经济管理学院",
+    "金融学院",
+    "法学院",
+    "文学院",
     "外国语学院",
-    "建筑学院",
-    "材料科学与工程学院",
-    "化学化工学院",
-    "生命科学学院",
-    "机械工程学院",
-    "电子信息学院",
-    "艺术设计学院",
-    "马克思主义学院"
+    "会计学院",
+    "社会审计学院",
+    "工程审计学院",
+    "统计与数据科学学院",
+    "数学学院",
+    "商学院",
+    "经济学院",
+    "国家审计学院",
+    "国家安全学院",
+    "国际学院",
+    "内部审计学院"
 ];
+
+// ===== 活动报名 =====
+const SIGNUPS_KEY = "campus_eco_signups";
+
+function getSignups() {
+    const data = localStorage.getItem(SIGNUPS_KEY);
+    return data ? JSON.parse(data) : [];
+}
+
+function saveSignups(list) {
+    localStorage.setItem(SIGNUPS_KEY, JSON.stringify(list));
+}
+
+// 用户报名活动
+function signupActivity(userId, username, activityId, activityTitle) {
+    const signups = getSignups();
+    // 检查是否已报名
+    if (signups.some(s => s.userId === userId && s.activityId === activityId)) {
+        return { success: false, message: "你已报名该活动" };
+    }
+    signups.push({
+        id: Date.now(),
+        userId, username, activityId, activityTitle,
+        status: "pending",
+        createdAt: new Date().toISOString()
+    });
+    saveSignups(signups);
+    return { success: true, message: "报名成功，等待管理员审核" };
+}
+
+// 获取某用户的报名记录
+function getUserSignups(userId) {
+    return getSignups().filter(s => s.userId === userId);
+}
+
+// 获取某活动的报名列表
+function getActivitySignups(activityId) {
+    return getSignups().filter(s => s.activityId === activityId);
+}
+
+// 审核报名
+function reviewSignup(signupId, status) {
+    const signups = getSignups();
+    const idx = signups.findIndex(s => s.id === signupId);
+    if (idx === -1) return { success: false, message: "报名记录不存在" };
+    signups[idx].status = status;
+    signups[idx].reviewedAt = new Date().toISOString();
+    saveSignups(signups);
+    return { success: true, message: status === "approved" ? "已通过报名" : "已拒绝报名" };
+}
 
 function getUsers() {
     const data = localStorage.getItem(AUTH_KEY);
@@ -155,6 +209,22 @@ function updateNavAuth() {
     const user = getCurrentUser();
     const navUser = document.getElementById("navUser");
     if (!navUser) return;
+
+    // 管理员显示审核中心入口
+    const adminLink = document.getElementById("adminNavLink");
+    if (user && user.role === "admin") {
+        if (!adminLink) {
+            const navLinks = document.querySelector(".nav-links");
+            if (navLinks) {
+                const li = document.createElement("li");
+                li.id = "adminNavLink";
+                li.innerHTML = '<a href="admin.html">审核中心</a>';
+                navLinks.appendChild(li);
+            }
+        }
+    } else if (adminLink) {
+        adminLink.remove();
+    }
 
     if (user) {
         const initial = user.username.charAt(0).toUpperCase();

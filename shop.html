@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>积分商城 - 校园环保网</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+        .gift-card { background: #fff; border-radius: 18px; padding: 22px; text-align: center; box-shadow: var(--shadow-sm); transition: var(--transition); border: 2px solid transparent; }
+        .gift-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--emerald-200); }
+        .gift-emoji { font-size: 52px; margin-bottom: 12px; }
+        .gift-name { font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+        .gift-points { color: var(--primary); font-weight: 700; font-size: 18px; margin-bottom: 10px; }
+        .gift-stock { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+        .gift-card.disabled { opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">🌿</span>
+                <span>校园环保网</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="activities.html">环保活动</a></li>
+                <li><a href="shop.html" class="active">积分商城</a></li>
+            </ul>
+            <div class="nav-user" id="navUser"></div>
+        </div>
+    </nav>
+
+    <div class="page-banner">
+        <h1>🛒 积分商城</h1>
+        <p>用环保积分兑换精美好礼，让绿色行动收获回报</p>
+    </div>
+
+    <div class="container">
+        <div id="pointsBanner" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:20px 28px;border-radius:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <p style="opacity:0.9;font-size:14px;">我的环保积分</p>
+                <h2 id="userPoints" style="font-size:32px;margin:4px 0;">0</h2>
+            </div>
+            <div style="text-align:right;font-size:13px;opacity:0.9;">
+                <p>坚持打卡，积分奖励更丰厚 🌟</p>
+            </div>
+        </div>
+
+        <div id="msgBox" class="auth-msg" style="display:none;margin-bottom:20px;"></div>
+
+        <div class="shop-grid" id="shopGrid"></div>
+    </div>
+
+    <!-- 领取码弹窗 -->
+    <div class="modal-overlay" id="codeModal">
+        <div class="modal">
+            <h3>🎉 兑换成功</h3>
+            <p style="text-align:center;margin:16px 0;">请截图保存领取码，凭码到环保办公室领取</p>
+            <div id="redeemCode" style="background:var(--emerald-50);border:2px dashed var(--primary);border-radius:12px;padding:20px;text-align:center;font-size:24px;font-weight:700;color:var(--emerald-700);letter-spacing:3px;margin:16px 0;"></div>
+            <p style="text-align:center;font-size:13px;color:var(--text-muted);">有效期：30天内</p>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="document.getElementById('codeModal').classList.remove('open')">我知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom">© 2024 校园环保网 · 让绿色成为校园最亮丽的底色 🌍</div>
+    </footer>
+
+    <script src="js/eco.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        function showMsg(msg, isError) {
+            const el = document.getElementById("msgBox");
+            el.textContent = msg;
+            el.className = "auth-msg " + (isError ? "error" : "success");
+            el.style.display = "block";
+            setTimeout(() => { el.style.display = "none"; }, 3000);
+        }
+
+        function renderShop() {
+            const user = getCurrentUser();
+            const userPoints = user ? getEcoSummary(user.id).balance : 0;
+            document.getElementById("userPoints").textContent = userPoints;
+
+            const grid = document.getElementById("shopGrid");
+            grid.innerHTML = GIFTS.map(g => {
+                const canAfford = user && userPoints >= g.points;
+                const outOfStock = g.stock <= 0;
+                const btnDisabled = !user || !canAfford || outOfStock;
+                let btnText = "立即兑换";
+                if (!user) btnText = "登录后兑换";
+                else if (outOfStock) btnText = "已兑完";
+                else if (!canAfford) btnText = `还差 ${g.points - userPoints} 积分`;
+
+                return `
+                <div class="gift-card ${(!canAfford || outOfStock) && user ? 'disabled' : ''}">
+                    <div class="gift-emoji">${g.emoji}</div>
+                    <div class="gift-name">${g.name}</div>
+                    <div class="gift-points">${g.points} 积分</div>
+                    <div class="gift-stock">库存：${g.stock}</div>
+                    <button class="btn ${canAfford && !outOfStock ? 'btn-primary' : 'btn-outline'}" 
+                        ${btnDisabled ? 'disabled' : ''} 
+                        onclick="redeem('${g.id}')">${btnText}</button>
+                </div>
+                `;
+            }).join("");
+        }
+
+        function redeem(giftId) {
+            const user = getCurrentUser();
+            if (!user) { location.href = "login.html"; return; }
+            const result = redeemGift(user.id, giftId);
+            if (result.success) {
+                document.getElementById("redeemCode").textContent = result.code;
+                document.getElementById("codeModal").classList.add("open");
+                renderShop();
+            } else {
+                showMsg(result.message, true);
+            }
+        }
+
+        renderShop();
+    </script>
+</body>
+</html>

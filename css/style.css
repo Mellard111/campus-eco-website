@@ -779,6 +779,21 @@ button {
     transition: var(--transition);
 }
 
+.form-group input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    background: var(--emerald-50);
+    cursor: pointer;
+    transition: var(--transition);
+}
+.form-group input[type="file"]:hover {
+    border-color: var(--primary);
+    background: var(--emerald-100);
+}
+
 .auth-card .btn {
     width: 100%;
     padding: 12px;

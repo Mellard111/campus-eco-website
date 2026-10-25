@@ -54,16 +54,18 @@ const RECYCLE_CATEGORIES = [
     { id: "electronics", name: "电子产品", pointsPerKg: 30, gramsPerKg: 5000 }
 ];
 
-// 礼品列表
+// 礼品列表（高积分兑换）
 const GIFTS = [
-    { id: "g1", name: "环保帆布袋", points: 50, stock: 100, emoji: "👜" },
-    { id: "g2", name: "不锈钢水杯", points: 120, stock: 50, emoji: "🥤" },
-    { id: "g3", name: "多肉植物盆栽", points: 80, stock: 30, emoji: "🪴" },
-    { id: "g4", name: "竹纤维笔记本", points: 60, stock: 80, emoji: "📓" },
-    { id: "g5", name: "环保主题T恤", points: 200, stock: 20, emoji: "👕" },
-    { id: "g6", name: "可降解餐具套装", points: 150, stock: 40, emoji: "🍴" },
-    { id: "g7", name: "种子盲盒", points: 30, stock: 200, emoji: "🌱" },
-    { id: "g8", name: "太阳能充电宝", points: 500, stock: 5, emoji: "🔋" }
+    { id: "g1", name: "环保帆布袋", points: 500, stock: 100, emoji: "👜" },
+    { id: "g2", name: "不锈钢水杯", points: 1200, stock: 50, emoji: "🥤" },
+    { id: "g3", name: "多肉植物盆栽", points: 800, stock: 30, emoji: "🪴" },
+    { id: "g4", name: "竹纤维笔记本", points: 600, stock: 80, emoji: "📓" },
+    { id: "g5", name: "环保主题T恤", points: 2000, stock: 20, emoji: "👕" },
+    { id: "g6", name: "可降解餐具套装", points: 1500, stock: 40, emoji: "🍴" },
+    { id: "g7", name: "种子盲盒", points: 300, stock: 200, emoji: "🌱" },
+    { id: "g8", name: "太阳能充电宝", points: 5000, stock: 5, emoji: "🔋" },
+    { id: "g9", name: "环保购物车", points: 3000, stock: 10, emoji: "🛒" },
+    { id: "g10", name: "空气净化器", points: 8000, stock: 3, emoji: "💨" }
 ];
 
 // 学院排行数据
@@ -184,8 +186,12 @@ function saveUserEcoData(userId, data) {
     saveAllEcoData(all);
 }
 
-// 执行打卡
+// 执行打卡（需上传凭证，提交后为待审核状态）
 function doCheckin(userId, kind, options = {}) {
+    if (!options.proof) {
+        return { success: false, message: "请上传打卡凭证（图片或文件）" };
+    }
+
     const data = getUserEcoData(userId);
     const today = dayKey(new Date());
 
@@ -234,7 +240,7 @@ function doCheckin(userId, kind, options = {}) {
         data.usage.recycle.monthPoints += points;
     }
 
-    // 检查每日积分上限
+    // 检查每日积分上限（预占）
     if (data.todayPoints + points > ECO_RULES.dailyPointCap) {
         points = ECO_RULES.dailyPointCap - data.todayPoints;
         if (points <= 0) {
@@ -242,26 +248,7 @@ function doCheckin(userId, kind, options = {}) {
         }
     }
 
-    // 更新数据
-    data.balance += points;
-    data.totalCarbonGrams += carbonGrams;
-    data.todayPoints += points;
-
-    // 连续打卡
-    if (data.lastCheckinDate !== today) {
-        const yesterday = dayKey(new Date(Date.now() - 86400000));
-        if (data.lastCheckinDate === yesterday) {
-            data.streak++;
-        } else {
-            data.streak = 1;
-        }
-        data.lastCheckinDate = today;
-    }
-    if (!data.checkedInDates.includes(today)) {
-        data.checkedInDates.push(today);
-    }
-
-    // 记录明细
+    // 记录明细（状态为待审核，积分和减碳暂不加入累计）
     data.entries.unshift({
         id: Date.now(),
         title,
@@ -269,6 +256,9 @@ function doCheckin(userId, kind, options = {}) {
         points,
         carbonGrams,
         kind,
+        status: "pending",
+        proof: options.proof,
+        proofName: options.proofName || "凭证",
         createdAt: new Date().toISOString()
     });
 
@@ -276,11 +266,67 @@ function doCheckin(userId, kind, options = {}) {
 
     return {
         success: true,
-        message: `打卡成功！获得 ${points} 积分，减碳 ${carbonGrams}g`,
+        message: "打卡凭证已提交，等待管理员审核",
         points,
         carbonGrams,
         data
     };
+}
+
+// 审核打卡（仅管理员）
+function reviewCheckin(userId, entryId, status) {
+    const data = getUserEcoData(userId);
+    const entry = data.entries.find(e => e.id === entryId);
+    if (!entry) return { success: false, message: "打卡记录不存在" };
+    if (entry.status !== "pending") return { success: false, message: "该记录已审核" };
+
+    entry.status = status;
+    entry.reviewedAt = new Date().toISOString();
+
+    if (status === "approved") {
+        // 审核通过才加积分和减碳
+        data.balance += entry.points;
+        data.totalCarbonGrams += entry.carbonGrams;
+        data.todayPoints += entry.points;
+
+        const today = dayKey(new Date());
+        if (data.lastCheckinDate !== today) {
+            const yesterday = dayKey(new Date(Date.now() - 86400000));
+            data.streak = (data.lastCheckinDate === yesterday) ? data.streak + 1 : 1;
+            data.lastCheckinDate = today;
+        }
+        if (!data.checkedInDates.includes(today)) {
+            data.checkedInDates.push(today);
+        }
+    } else if (status === "rejected") {
+        // 拒绝时返还使用次数
+        if (entry.kind === "walk") data.usage.walk.usedToday = Math.max(0, data.usage.walk.usedToday - 1);
+        else if (entry.kind === "cup") data.usage.cup.usedToday = Math.max(0, data.usage.cup.usedToday - 1);
+        else if (entry.kind === "recycle") data.usage.recycle.monthPoints = Math.max(0, data.usage.recycle.monthPoints - entry.points);
+    }
+
+    saveUserEcoData(userId, data);
+    return { success: true, message: status === "approved" ? "已通过，积分已发放" : "已拒绝" };
+}
+
+// 获取所有待审核打卡（管理员用）
+function getAllPendingCheckins() {
+    const all = getAllEcoData();
+    const users = getUsers();
+    const pending = [];
+    for (const userId in all) {
+        const data = all[userId];
+        const user = users.find(u => u.id === parseInt(userId) || u.id === userId);
+        data.entries.filter(e => e.status === "pending").forEach(e => {
+            pending.push({
+                ...e,
+                userId: parseInt(userId),
+                username: user ? user.username : "未知用户",
+                college: user ? user.college : ""
+            });
+        });
+    }
+    return pending.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
 // 兑换礼品
