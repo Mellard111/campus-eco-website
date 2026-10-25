@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心 - 校园环保网</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">🌿</span>
+                <span>校园环保网</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="activities.html">环保活动</a></li>
+                <li><a href="shop.html">积分商城</a></li>
+                <li><a href="carbon.html">碳足迹</a></li>
+            </ul>
+            <div class="nav-user" id="navUser"></div>
+        </div>
+    </nav>
+
+    <div class="container" id="profileContent"></div>
+
+    <!-- 修改资料弹窗 -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <h3>修改资料</h3>
+            <div class="form-group">
+                <label for="editEmail">邮箱</label>
+                <input type="email" id="editEmail" placeholder="新邮箱">
+            </div>
+            <div class="form-group">
+                <label for="editPassword">新密码（留空则不修改）</label>
+                <input type="password" id="editPassword" placeholder="至少6个字符">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="hideEditModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveProfile()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 打卡弹窗 -->
+    <div class="modal-overlay" id="checkinModal">
+        <div class="modal">
+            <h3>低碳打卡</h3>
+            <div id="checkinModalBody"></div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeCheckin()">取消</button>
+                <button class="btn btn-primary" onclick="confirmCheckin()">确认打卡</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom">© 2024 校园环保网 · 让绿色成为校园最亮丽的底色 🌍</div>
+    </footer>
+
+    <script src="js/eco.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        function renderProfile() {
+            const user = getCurrentUser();
+            if (!user) { window.location.href = "login.html"; return; }
+
+            const data = getUserEcoData(user.id);
+            const summary = getEcoSummary(user.id);
+            const days = lastDays(28);
+            const checked = new Set(data.checkedInDates);
+
+            const entriesHtml = data.entries.length === 0
+                ? `<div class="empty-state">
+                    <p>今天还没有打卡，去试试自带水杯</p>
+                    <button class="btn btn-primary" onclick="openCheckin('cup')">去打卡</button>
+                   </div>`
+                : `<ul class="entry-list">
+                    ${data.entries.slice(0, 50).map(e => `
+                        <li class="entry-item">
+                            <div class="entry-info">
+                                <p>${e.title}</p>
+                                <span class="meta">${formatDateTime(e.createdAt)}${e.detail ? ' · ' + e.detail : ''}</span>
+                            </div>
+                            <span class="entry-points ${e.points >= 0 ? 'plus' : 'minus'}">${e.points >= 0 ? '+' + e.points : e.points}</span>
+                        </li>
+                    `).join("")}
+                   </ul>`;
+
+            document.getElementById("profileContent").innerHTML = `
+                <!-- 用户信息 -->
+                <div class="profile-header">
+                    <div class="profile-avatar-lg">${user.username.charAt(0).toUpperCase()}</div>
+                    <div class="profile-meta">
+                        <h2>${user.username}</h2>
+                        <p class="email">${user.email}</p>
+                        <p style="margin-top:6px;color:var(--emerald-700);font-weight:600;font-size:14px;">🌱 环保积分：${summary.balance}</p>
+                    </div>
+                    <div class="profile-actions">
+                        <button class="btn btn-outline" onclick="showEditModal()">修改资料</button>
+                        <button class="btn btn-primary" onclick="signIn()">签到</button>
+                    </div>
+                </div>
+
+                <!-- 数据统计 -->
+                <div class="profile-stats">
+                    <div class="stat-box">
+                        <div class="num">${summary.balance}</div>
+                        <div class="lbl">当前积分</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="num">${summary.streak}</div>
+                        <div class="lbl">连续打卡</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="num">${summary.todayPoints}/${summary.dailyPointCap}</div>
+                        <div class="lbl">今日积分</div>
+                    </div>
+                </div>
+
+                <!-- 打卡日历 -->
+                <section class="panel" style="margin-bottom:24px;">
+                    <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;">打卡日历（最近 4 周）</h2>
+                    <div class="calendar" role="img" aria-label="最近 28 天打卡情况">
+                        ${days.map(d => `
+                            <div class="cal-cell ${checked.has(d) ? 'checked' : 'unchecked'}" title="${d}">
+                                ${Number(d.slice(8))}
+                            </div>
+                        `).join("")}
+                    </div>
+                </section>
+
+                <!-- 积分明细 -->
+                <section>
+                    <div class="section-head">
+                        <h2>积分明细</h2>
+                    </div>
+                    ${entriesHtml}
+                </section>
+            `;
+        }
+
+        function showEditModal() {
+            const user = getCurrentUser();
+            document.getElementById("editEmail").value = user.email;
+            document.getElementById("editModal").classList.add("open");
+        }
+
+        function hideEditModal() {
+            document.getElementById("editModal").classList.remove("open");
+        }
+
+        function saveProfile() {
+            const email = document.getElementById("editEmail").value.trim();
+            const password = document.getElementById("editPassword").value;
+            const updates = {};
+            if (email) updates.email = email;
+            if (password && password.length >= 6) updates.password = password;
+            if (password && password.length < 6) { showToast("密码至少需要6个字符"); return; }
+
+            const updated = updateCurrentUser(updates);
+            if (updated) {
+                showToast("资料修改成功！", "success");
+                hideEditModal();
+                renderProfile();
+                updateNavAuth();
+            } else {
+                showToast("修改失败，请重试");
+            }
+        }
+
+        function signIn() {
+            const user = getCurrentUser();
+            const today = dayKey(new Date());
+            const data = getUserEcoData(user.id);
+            if (data.checkedInDates.includes(today)) {
+                showToast("今天已经签到过啦，明天再来吧！");
+                return;
+            }
+            const result = doCheckin(user.id, "cup");
+            if (result.success) {
+                showToast(result.message, "success");
+                renderProfile();
+            } else {
+                showToast(result.message);
+            }
+        }
+
+        renderProfile();
+    </script>
+</body>
+</html>

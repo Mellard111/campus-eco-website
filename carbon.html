@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>碳足迹 - 校园环保网</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">🌿</span>
+                <span>校园环保网</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="activities.html">环保活动</a></li>
+                <li><a href="shop.html">积分商城</a></li>
+                <li><a href="carbon.html" class="active">碳足迹</a></li>
+            </ul>
+            <div class="nav-user" id="navUser"></div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="carbonContent">
+            <!-- 由 JS 渲染 -->
+        </div>
+    </div>
+
+    <!-- 打卡弹窗 -->
+    <div class="modal-overlay" id="checkinModal">
+        <div class="modal">
+            <h3>低碳打卡</h3>
+            <div id="checkinModalBody"></div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeCheckin()">取消</button>
+                <button class="btn btn-primary" onclick="confirmCheckin()">确认打卡</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom">© 2024 校园环保网 · 让绿色成为校园最亮丽的底色 🌍</div>
+    </footer>
+
+    <script src="js/eco.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        function renderCarbon() {
+            const user = getCurrentUser();
+            const el = document.getElementById("carbonContent");
+
+            if (!user) {
+                el.innerHTML = `
+                    <div class="panel" style="text-align:center;padding:50px;">
+                        <p style="font-size:48px;margin-bottom:16px;">🌍</p>
+                        <h2 style="margin-bottom:10px;">登录后查看你的碳足迹</h2>
+                        <p style="color:var(--text-muted);margin-bottom:20px;">记录每一次低碳行为，见证你的减碳成果</p>
+                        <a href="login.html" class="btn btn-primary">立即登录</a>
+                    </div>
+                `;
+                return;
+            }
+
+            const report = getCarbonTrend(user.id);
+            const max = Math.max(1, ...report.trend.map(p => p.grams));
+            const trees = treesFromGrams(report.totalGrams);
+            const activeDays = report.trend.filter(p => p.grams > 0).length;
+
+            const trendHtml = report.last30Grams === 0
+                ? `<div class="empty-state">
+                    <p>完成第一次打卡后可查看你的减碳成果</p>
+                    <button class="btn btn-primary" onclick="openCheckin()">去打卡</button>
+                   </div>`
+                : `<div>
+                    <div class="chart-wrap">
+                        ${report.trend.map(p => `
+                            <div class="chart-bar ${p.grams === 0 ? 'empty' : ''}"
+                                 style="height:${p.grams === 0 ? 2 : Math.max(6, (p.grams / max) * 100)}%"
+                                 title="${p.date}：${p.grams} g"></div>
+                        `).join("")}
+                    </div>
+                    <div class="chart-labels">
+                        <span>${report.trend[0].date.slice(5)}</span>
+                        <span>${report.trend[report.trend.length - 1].date.slice(5)}</span>
+                    </div>
+                    <p style="font-size:13px;color:var(--text-muted);margin-top:10px;">
+                        近 30 天共 ${activeDays} 天有打卡，累计减碳 ${formatKg(report.last30Grams)} kg。数值为估算值。
+                    </p>
+                   </div>`;
+
+            const breakdownHtml = report.byKind.length === 0
+                ? `<p style="color:var(--text-muted);font-size:14px;">暂无减碳来源数据</p>`
+                : `<ul class="carbon-breakdown">
+                    ${report.byKind.map(k => {
+                        const v = KIND_VISUAL[k.kind] || { icon: "🌱", iconBox: "#dcfce7" };
+                        const pct = report.totalGrams ? Math.round((k.grams / report.totalGrams) * 100) : 0;
+                        return `
+                            <li>
+                                <span class="carbon-icon" style="background:${v.iconBox}">${v.icon}</span>
+                                <div class="carbon-body">
+                                    <div class="carbon-row">
+                                        <span>${KIND_LABEL[k.kind] || k.kind} <span style="color:var(--text-muted);font-size:12px;">× ${k.count}</span></span>
+                                        <span style="font-weight:700;">${formatKg(k.grams)} kg</span>
+                                    </div>
+                                    <div class="rank-bar">
+                                        <div class="rank-bar-fill" style="width:${pct}%"></div>
+                                    </div>
+                                </div>
+                            </li>
+                        `;
+                    }).join("")}
+                   </ul>
+                   <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">碳排放因子为估算值，最终口径以学校相关部门确认为准。</p>`;
+
+            el.innerHTML = `
+                <section class="hero-stats">
+                    <div class="blob"></div>
+                    <div class="hero-inner">
+                        <div class="hero-left">
+                            <p class="label">我的碳足迹</p>
+                            <div class="hero-value">
+                                <h1>${formatKg(report.totalGrams)}</h1>
+                                <span>kg CO₂</span>
+                            </div>
+                            <p class="hero-trees">
+                                ${report.totalGrams === 0
+                                    ? "完成第一次打卡后可查看你的减碳成果"
+                                    : `相当于为地球种植了 ${trees} 棵侧柏，近 30 天减碳 ${formatKg(report.last30Grams)} kg`}
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel" style="margin-top:24px;">
+                    <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;">近 30 天趋势</h2>
+                    ${trendHtml}
+                </section>
+
+                <section class="panel" style="margin-top:24px;">
+                    <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;">减碳来源</h2>
+                    ${breakdownHtml}
+                </section>
+            `;
+        }
+
+        renderCarbon();
+    </script>
+</body>
+</html>

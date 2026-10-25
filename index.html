@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园环保网 - 共建绿色校园</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">🌿</span>
+                <span>校园环保网</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html" class="active">首页</a></li>
+                <li><a href="activities.html">环保活动</a></li>
+                <li><a href="shop.html">积分商城</a></li>
+                <li><a href="carbon.html">碳足迹</a></li>
+            </ul>
+            <div class="nav-user" id="navUser"></div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 减碳统计 -->
+        <section class="hero-stats" id="heroStats"></section>
+
+        <!-- 低碳打卡 -->
+        <div id="checkinCards"></div>
+
+        <!-- 双栏：积分商城 + 环保活动 -->
+        <div class="two-col">
+            <section>
+                <div class="section-head">
+                    <h2>积分兑换</h2>
+                    <a href="shop.html" class="more">查看全部 →</a>
+                </div>
+                <div class="gift-grid" id="giftPreview"></div>
+            </section>
+            <section>
+                <div class="section-head">
+                    <h2>环保活动</h2>
+                    <a href="activities.html" class="more">更多活动 →</a>
+                </div>
+                <div class="event-list" id="eventsPreview"></div>
+            </section>
+        </div>
+
+        <!-- 学院减碳排行 -->
+        <section class="ranking-panel" style="margin-top:24px;">
+            <div class="ranking-head">
+                <h2>学院减碳排行</h2>
+                <div class="range-tabs">
+                    <button class="range-tab active" onclick="switchRange('week')">本周</button>
+                    <button class="range-tab" onclick="switchRange('term')">学期</button>
+                </div>
+            </div>
+            <ol class="ranking-list" id="rankingList"></ol>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:14px;">示例数据，真实学院排行将在后续版本接入。</p>
+        </section>
+
+        <!-- 环保资讯 -->
+        <div class="section-head">
+            <h2>环保资讯</h2>
+        </div>
+        <div class="checkin-grid" id="newsGrid"></div>
+
+        <!-- 环保贴士 -->
+        <div class="section-head">
+            <h2>环保小贴士</h2>
+        </div>
+        <div id="tipsList"></div>
+    </div>
+
+    <!-- 打卡弹窗 -->
+    <div class="modal-overlay" id="checkinModal">
+        <div class="modal">
+            <h3 id="checkinTitle">低碳打卡</h3>
+            <div id="checkinModalBody"></div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeCheckin()">取消</button>
+                <button class="btn btn-primary" onclick="confirmCheckin()">确认打卡</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部 -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-col">
+                <h4>🌿 校园环保网</h4>
+                <p>致力于打造绿色校园，传播环保理念，号召全体师生共同参与环保行动。</p>
+            </div>
+            <div class="footer-col">
+                <h4>快速导航</h4>
+                <a href="index.html">首页</a>
+                <a href="activities.html">环保活动</a>
+                <a href="shop.html">积分商城</a>
+                <a href="carbon.html">碳足迹</a>
+            </div>
+            <div class="footer-col">
+                <h4>联系方式</h4>
+                <p>📧 eco@campus.edu</p>
+                <p>📞 010-12345678</p>
+                <p>📍 校园环保办公室</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            © 2024 校园环保网 · 让绿色成为校园最亮丽的底色 🌍
+        </div>
+    </footer>
+
+    <script src="js/eco.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

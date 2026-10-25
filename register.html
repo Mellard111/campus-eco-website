@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 校园环保网</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">🌿</span>
+                <span>校园环保网</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="activities.html">环保活动</a></li>
+            </ul>
+            <div class="nav-user" id="navUser"></div>
+        </div>
+    </nav>
+
+    <section class="auth-wrap">
+        <div class="auth-card">
+            <h2>🌱 加入我们</h2>
+            <p class="auth-sub">创建账号，一起守护绿色校园</p>
+            <div class="auth-msg error" id="msgBox"></div>
+            <form onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" placeholder="3-20个字符" minlength="3" maxlength="20" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">邮箱</label>
+                    <input type="email" id="email" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" placeholder="至少6个字符" minlength="6" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">确认密码</label>
+                    <input type="password" id="confirmPassword" placeholder="再次输入密码" minlength="6" required>
+                </div>
+                <button type="submit" class="btn btn-primary">注 册</button>
+            </form>
+            <p class="auth-switch">已有账号？<a href="login.html">立即登录</a></p>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-bottom">© 2024 校园环保网 · 让绿色成为校园最亮丽的底色 🌍</div>
+    </footer>
+
+    <script src="js/eco.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        function showMsg(msg, isError) {
+            const el = document.getElementById("msgBox");
+            el.textContent = msg;
+            el.className = "auth-msg " + (isError ? "error" : "success");
+            el.style.display = "block";
+        }
+        function handleRegister(e) {
+            e.preventDefault();
+            const username = document.getElementById("username").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+            const confirmPassword = document.getElementById("confirmPassword").value;
+            if (password !== confirmPassword) { showMsg("两次输入的密码不一致", true); return; }
+            if (username.length < 3) { showMsg("用户名至少需要3个字符", true); return; }
+            const result = registerUser(username, email, password);
+            if (result.success) {
+                showMsg(result.message + "，即将跳转到登录页...", false);
+                setTimeout(() => { window.location.href = "login.html"; }, 1200);
+            } else {
+                showMsg(result.message, true);
+            }
+        }
+        if (isLoggedIn()) window.location.href = "profile.html";
+    </script>
+</body>
+</html>

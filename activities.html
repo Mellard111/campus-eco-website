@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>环保活动 - 校园环保网</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">🌿</span>
+                <span>校园环保网</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="activities.html" class="active">环保活动</a></li>
+                <li><a href="shop.html">积分商城</a></li>
+                <li><a href="carbon.html">碳足迹</a></li>
+            </ul>
+            <div class="nav-user" id="navUser"></div>
+        </div>
+    </nav>
+
+    <div class="page-banner">
+        <h1>🌳 校园环保活动</h1>
+        <p>参与环保活动，为绿色校园贡献力量，还能获得环保积分哦！</p>
+    </div>
+
+    <div class="container">
+        <div class="filter-row">
+            <button class="filter-btn active" onclick="filterActivities('全部')">全部</button>
+            <button class="filter-btn" onclick="filterActivities('报名中')">报名中</button>
+            <button class="filter-btn" onclick="filterActivities('候补中')">候补中</button>
+        </div>
+        <div id="activityList"></div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom">© 2024 校园环保网 · 让绿色成为校园最亮丽的底色 🌍</div>
+    </footer>
+
+    <script src="js/eco.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
