@@ -24,12 +24,26 @@
     <section class="auth-wrap">
         <div class="auth-card">
             <h2>🌱 加入我们</h2>
-            <p class="auth-sub">创建账号，一起守护绿色校园</p>
+            <p class="auth-sub">填写身份信息，一起守护绿色校园</p>
             <div class="auth-msg error" id="msgBox"></div>
             <form onsubmit="handleRegister(event)">
                 <div class="form-group">
                     <label for="username">用户名</label>
                     <input type="text" id="username" placeholder="3-20个字符" minlength="3" maxlength="20" required>
+                </div>
+                <div class="form-group">
+                    <label for="studentId">学号</label>
+                    <input type="text" id="studentId" placeholder="请输入学号" required>
+                </div>
+                <div class="form-group">
+                    <label for="college">学院</label>
+                    <select id="college" required>
+                        <option value="">请选择学院</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="className">班级</label>
+                    <input type="text" id="className" placeholder="如：环境2101班" required>
                 </div>
                 <div class="form-group">
                     <label for="email">邮箱</label>
@@ -56,6 +70,15 @@
     <script src="js/eco.js"></script>
     <script src="js/auth.js"></script>
     <script>
+        // 填充学院下拉列表
+        const collegeSelect = document.getElementById("college");
+        COLLEGES.forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = c;
+            opt.textContent = c;
+            collegeSelect.appendChild(opt);
+        });
+
         function showMsg(msg, isError) {
             const el = document.getElementById("msgBox");
             el.textContent = msg;
@@ -65,12 +88,20 @@
         function handleRegister(e) {
             e.preventDefault();
             const username = document.getElementById("username").value.trim();
+            const studentId = document.getElementById("studentId").value.trim();
+            const college = document.getElementById("college").value;
+            const className = document.getElementById("className").value.trim();
             const email = document.getElementById("email").value.trim();
             const password = document.getElementById("password").value;
             const confirmPassword = document.getElementById("confirmPassword").value;
+
             if (password !== confirmPassword) { showMsg("两次输入的密码不一致", true); return; }
             if (username.length < 3) { showMsg("用户名至少需要3个字符", true); return; }
-            const result = registerUser(username, email, password);
+            if (!studentId) { showMsg("请输入学号", true); return; }
+            if (!college) { showMsg("请选择学院", true); return; }
+            if (!className) { showMsg("请输入班级", true); return; }
+
+            const result = registerUser(username, email, password, studentId, className, college);
             if (result.success) {
                 showMsg(result.message + "，即将跳转到登录页...", false);
                 setTimeout(() => { window.location.href = "login.html"; }, 1200);

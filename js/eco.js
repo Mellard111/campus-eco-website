@@ -359,6 +359,41 @@ function getCarbonTrend(userId) {
     return { totalGrams: data.totalCarbonGrams, last30Grams, trend, byKind };
 }
 
+// 分享文本（优先使用系统分享，否则复制到剪贴板）
+function shareText(text) {
+    if (navigator.share) {
+        navigator.share({ title: "校园环保网", text: text }).catch(() => copyToClipboard(text));
+    } else {
+        copyToClipboard(text);
+    }
+}
+
+function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast("已复制到剪贴板，快去分享吧！", "success");
+        }).catch(() => fallbackCopy(text));
+    } else {
+        fallbackCopy(text);
+    }
+}
+
+function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand("copy");
+        showToast("已复制到剪贴板，快去分享吧！", "success");
+    } catch (e) {
+        showToast("分享内容：" + text);
+    }
+    document.body.removeChild(ta);
+}
+
 // Toast 提示
 function showToast(message, type = "") {
     let toast = document.querySelector(".toast");

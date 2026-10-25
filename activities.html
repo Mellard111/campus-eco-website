@@ -16,7 +16,6 @@
             <ul class="nav-links">
                 <li><a href="index.html">首页</a></li>
                 <li><a href="activities.html" class="active">环保活动</a></li>
-                <li><a href="shop.html">积分商城</a></li>
                 <li><a href="carbon.html">碳足迹</a></li>
             </ul>
             <div class="nav-user" id="navUser"></div>
@@ -25,14 +24,53 @@
 
     <div class="page-banner">
         <h1>🌳 校园环保活动</h1>
-        <p>参与环保活动，为绿色校园贡献力量，还能获得环保积分哦！</p>
+        <p>参与环保活动，为绿色校园贡献力量！</p>
     </div>
 
     <div class="container">
+        <!-- 管理员发布活动 -->
+        <div id="adminPublishSection" style="display:none;margin-bottom:24px;">
+            <div class="panel">
+                <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;">📢 管理员发布活动</h2>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div class="form-group">
+                        <label>活动标题</label>
+                        <input type="text" id="actTitle" placeholder="如：植树节绿化活动">
+                    </div>
+                    <div class="form-group">
+                        <label>图标 emoji</label>
+                        <input type="text" id="actEmoji" placeholder="如：🌳" maxlength="2" value="🌱">
+                    </div>
+                    <div class="form-group">
+                        <label>地点</label>
+                        <input type="text" id="actPlace" placeholder="如：学生活动中心">
+                    </div>
+                    <div class="form-group">
+                        <label>时间</label>
+                        <input type="text" id="actTime" placeholder="如：11/02 08:00">
+                    </div>
+                    <div class="form-group" style="grid-column:1/-1;">
+                        <label>活动描述</label>
+                        <input type="text" id="actDesc" placeholder="活动简介">
+                    </div>
+                    <div class="form-group">
+                        <label>状态</label>
+                        <select id="actStatus" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;">
+                            <option value="报名中">报名中</option>
+                            <option value="候补中">候补中</option>
+                            <option value="已结束">已结束</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="publishActivity()">发布活动</button>
+            </div>
+        </div>
+
         <div class="filter-row">
             <button class="filter-btn active" onclick="filterActivities('全部')">全部</button>
             <button class="filter-btn" onclick="filterActivities('报名中')">报名中</button>
             <button class="filter-btn" onclick="filterActivities('候补中')">候补中</button>
+            <button class="filter-btn" onclick="filterActivities('已结束')">已结束</button>
         </div>
         <div id="activityList"></div>
     </div>
@@ -44,5 +82,41 @@
     <script src="js/eco.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/main.js"></script>
+    <script>
+        // 管理员可见发布区
+        if (isAdmin()) {
+            document.getElementById("adminPublishSection").style.display = "block";
+        }
+
+        function publishActivity() {
+            const title = document.getElementById("actTitle").value.trim();
+            const emoji = document.getElementById("actEmoji").value.trim() || "🌱";
+            const place = document.getElementById("actPlace").value.trim();
+            const time = document.getElementById("actTime").value.trim();
+            const desc = document.getElementById("actDesc").value.trim();
+            const status = document.getElementById("actStatus").value;
+
+            if (!title || !place || !time) {
+                showToast("请填写活动标题、地点和时间");
+                return;
+            }
+
+            const activities = getActivities();
+            activities.unshift({
+                id: "e" + Date.now(),
+                title, emoji, place, time, desc, status
+            });
+            saveActivities(activities);
+
+            document.getElementById("actTitle").value = "";
+            document.getElementById("actPlace").value = "";
+            document.getElementById("actTime").value = "";
+            document.getElementById("actDesc").value = "";
+            document.getElementById("actEmoji").value = "🌱";
+
+            showToast("活动发布成功！", "success");
+            renderActivities();
+        }
+    </script>
 </body>
 </html>

@@ -17,7 +17,6 @@
             <ul class="nav-links">
                 <li><a href="index.html" class="active">首页</a></li>
                 <li><a href="activities.html">环保活动</a></li>
-                <li><a href="shop.html">积分商城</a></li>
                 <li><a href="carbon.html">碳足迹</a></li>
             </ul>
             <div class="nav-user" id="navUser"></div>
@@ -31,15 +30,8 @@
         <!-- 低碳打卡 -->
         <div id="checkinCards"></div>
 
-        <!-- 双栏：积分商城 + 环保活动 -->
+        <!-- 双栏：环保活动 + 学院排行 -->
         <div class="two-col">
-            <section>
-                <div class="section-head">
-                    <h2>积分兑换</h2>
-                    <a href="shop.html" class="more">查看全部 →</a>
-                </div>
-                <div class="gift-grid" id="giftPreview"></div>
-            </section>
             <section>
                 <div class="section-head">
                     <h2>环保活动</h2>
@@ -47,20 +39,26 @@
                 </div>
                 <div class="event-list" id="eventsPreview"></div>
             </section>
+            <section>
+                <div class="section-head">
+                    <h2>学院减碳排行</h2>
+                    <div class="range-tabs">
+                        <button class="range-tab active" onclick="switchRange('week')">本周</button>
+                        <button class="range-tab" onclick="switchRange('term')">学期</button>
+                    </div>
+                </div>
+                <div class="ranking-panel" style="padding:0;box-shadow:none;border:none;">
+                    <ol class="ranking-list" id="rankingList"></ol>
+                </div>
+            </section>
         </div>
 
-        <!-- 学院减碳排行 -->
-        <section class="ranking-panel" style="margin-top:24px;">
-            <div class="ranking-head">
-                <h2>学院减碳排行</h2>
-                <div class="range-tabs">
-                    <button class="range-tab active" onclick="switchRange('week')">本周</button>
-                    <button class="range-tab" onclick="switchRange('term')">学期</button>
-                </div>
-            </div>
-            <ol class="ranking-list" id="rankingList"></ol>
-            <p style="font-size:12px;color:var(--text-muted);margin-top:14px;">示例数据，真实学院排行将在后续版本接入。</p>
-        </section>
+        <!-- 重要环保日期 -->
+        <div class="section-head">
+            <h2>📅 重要环保日期</h2>
+            <span style="font-size:13px;color:var(--text-muted);">点击分享，传播环保理念</span>
+        </div>
+        <div class="checkin-grid" id="ecoDatesGrid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));"></div>
 
         <!-- 环保资讯 -->
         <div class="section-head">
@@ -98,8 +96,8 @@
                 <h4>快速导航</h4>
                 <a href="index.html">首页</a>
                 <a href="activities.html">环保活动</a>
-                <a href="shop.html">积分商城</a>
                 <a href="carbon.html">碳足迹</a>
+                <a href="register.html">加入我们</a>
             </div>
             <div class="footer-col">
                 <h4>联系方式</h4>

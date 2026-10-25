@@ -16,7 +16,6 @@
             <ul class="nav-links">
                 <li><a href="index.html">首页</a></li>
                 <li><a href="activities.html">环保活动</a></li>
-                <li><a href="shop.html">积分商城</a></li>
                 <li><a href="carbon.html">碳足迹</a></li>
             </ul>
             <div class="nav-user" id="navUser"></div>
@@ -32,6 +31,14 @@
             <div class="form-group">
                 <label for="editEmail">邮箱</label>
                 <input type="email" id="editEmail" placeholder="新邮箱">
+            </div>
+            <div class="form-group">
+                <label for="editCollege">学院</label>
+                <select id="editCollege"></select>
+            </div>
+            <div class="form-group">
+                <label for="editClassName">班级</label>
+                <input type="text" id="editClassName" placeholder="班级">
             </div>
             <div class="form-group">
                 <label for="editPassword">新密码（留空则不修改）</label>
@@ -95,13 +102,17 @@
                 <div class="profile-header">
                     <div class="profile-avatar-lg">${user.username.charAt(0).toUpperCase()}</div>
                     <div class="profile-meta">
-                        <h2>${user.username}</h2>
+                        <h2>${user.username} ${user.role === 'admin' ? '<span style="background:#f59e0b;color:#fff;font-size:11px;padding:2px 8px;border-radius:4px;margin-left:6px;">管理员</span>' : ''}</h2>
                         <p class="email">${user.email}</p>
+                        <p style="margin-top:4px;font-size:13px;color:var(--text-muted);">
+                            🎓 ${user.college || '未填写'} · ${user.className || '未填写'} · 学号 ${user.studentId || '未填写'}
+                        </p>
                         <p style="margin-top:6px;color:var(--emerald-700);font-weight:600;font-size:14px;">🌱 环保积分：${summary.balance}</p>
                     </div>
                     <div class="profile-actions">
                         <button class="btn btn-outline" onclick="showEditModal()">修改资料</button>
                         <button class="btn btn-primary" onclick="signIn()">签到</button>
+                        <button class="btn btn-outline" onclick="shareAchievement()">📤 分享</button>
                     </div>
                 </div>
 
@@ -146,6 +157,15 @@
         function showEditModal() {
             const user = getCurrentUser();
             document.getElementById("editEmail").value = user.email;
+            document.getElementById("editClassName").value = user.className || "";
+            const sel = document.getElementById("editCollege");
+            sel.innerHTML = '<option value="">请选择学院</option>';
+            COLLEGES.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = c; opt.textContent = c;
+                if (c === user.college) opt.selected = true;
+                sel.appendChild(opt);
+            });
             document.getElementById("editModal").classList.add("open");
         }
 
@@ -155,9 +175,13 @@
 
         function saveProfile() {
             const email = document.getElementById("editEmail").value.trim();
+            const college = document.getElementById("editCollege").value;
+            const className = document.getElementById("editClassName").value.trim();
             const password = document.getElementById("editPassword").value;
             const updates = {};
             if (email) updates.email = email;
+            if (college) updates.college = college;
+            if (className) updates.className = className;
             if (password && password.length >= 6) updates.password = password;
             if (password && password.length < 6) { showToast("密码至少需要6个字符"); return; }
 
@@ -187,6 +211,15 @@
             } else {
                 showToast(result.message);
             }
+        }
+
+        // 分享我的减碳成就
+        function shareAchievement() {
+            const user = getCurrentUser();
+            const summary = getEcoSummary(user.id);
+            const trees = summary.trees;
+            const text = `🌿 我在校园环保网已累计减碳 ${formatKg(summary.totalCarbonGrams)} kg CO₂，相当于为地球种植了 ${trees} 棵侧柏！连续打卡 ${summary.streak} 天，获得 ${summary.balance} 环保积分。一起来守护绿色校园吧！🌍`;
+            shareText(text);
         }
 
         renderProfile();

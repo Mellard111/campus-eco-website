@@ -1,5 +1,19 @@
 /* ===== 校园环保网 - 首页与活动页渲染 ===== */
 
+// 重要环保日期
+const ECO_DATES = [
+    { date: "03-12", name: "中国植树节", emoji: "🌳", desc: "植树造林，绿化祖国，每年3月12日。" },
+    { date: "03-21", name: "世界森林日", emoji: "🌲", desc: "提高对森林资源的重视，保护森林生态。" },
+    { date: "03-22", name: "世界水日", emoji: "💧", desc: "关注水资源保护，倡导节约用水。" },
+    { date: "04-22", name: "世界地球日", emoji: "🌍", desc: "唤起人类爱护地球、保护家园的意识。" },
+    { date: "05-31", name: "世界无烟日", emoji: "🚭", desc: "倡导无烟环境，减少空气污染。" },
+    { date: "06-05", name: "世界环境日", emoji: "🌿", desc: "联合国设立，促进全球环保意识。" },
+    { date: "06-17", name: "世界防治荒漠化日", emoji: "🏜️", desc: "防治土地荒漠化，改善生态环境。" },
+    { date: "09-16", name: "国际臭氧层保护日", emoji: "🌤️", desc: "保护臭氧层，减少紫外线伤害。" },
+    { date: "10-04", name: "世界动物日", emoji: "🐾", desc: "关爱动物，维护生物多样性。" },
+    { date: "12-29", name: "国际生物多样性日", emoji: "🦋", desc: "保护生物多样性，共建地球家园。" }
+];
+
 // 环保资讯
 const ECO_NEWS = [
     { emoji: "🌱", title: "校园垃圾分类新规实施", desc: "学校自本月起全面实施垃圾分类新规，请同学们积极配合。", tag: "校园动态" },
@@ -20,6 +34,26 @@ const ECO_TIPS = [
     { title: "垃圾分类", desc: "正确分类投放垃圾，让可回收物得到循环利用。" }
 ];
 
+// 获取活动列表（从 localStorage 读取，管理员发布）
+const ACTIVITIES_KEY = "campus_eco_activities";
+function getActivities() {
+    const data = localStorage.getItem(ACTIVITIES_KEY);
+    if (data) return JSON.parse(data);
+    // 默认活动
+    const defaults = [
+        { id: "e1", title: "周末旧物交换市集", place: "学生活动中心广场", time: "10/24 14:00", status: "报名中", emoji: "🎪", desc: "带上闲置物品来交换，让旧物焕发新生。" },
+        { id: "e2", title: "「光盘行动」志愿者招募", place: "第一食堂", time: "10/25 11:30", status: "候补中", emoji: "🍽️", desc: "监督食堂浪费情况，倡导光盘行动。" },
+        { id: "e3", title: "校园垃圾分类知识讲座", place: "图书馆报告厅", time: "10/28 14:00", status: "报名中", emoji: "🗑️", desc: "专家讲解垃圾分类知识，现场互动问答。" },
+        { id: "e4", title: "植树节绿化养护活动", place: "校园绿化带", time: "11/02 08:00", status: "报名中", emoji: "🌳", desc: "参与校园花草树木养护，美化学习环境。" }
+    ];
+    localStorage.setItem(ACTIVITIES_KEY, JSON.stringify(defaults));
+    return defaults;
+}
+
+function saveActivities(list) {
+    localStorage.setItem(ACTIVITIES_KEY, JSON.stringify(list));
+}
+
 // 渲染减碳统计 Hero
 function renderHeroStats() {
     const el = document.getElementById("heroStats");
@@ -39,7 +73,7 @@ function renderHeroStats() {
                         <span>kg CO₂</span>
                     </div>
                     ${summary.totalCarbonGrams === 0
-                        ? `<button class="hero-trees" style="background:none;border:none;color:#fff;cursor:pointer;text-decoration:underline;underline-offset:4px;font-size:14px;" onclick="openCheckin()">完成第一次打卡后可查看你的减碳成果</button>`
+                        ? `<button style="background:none;border:none;color:#fff;cursor:pointer;text-decoration:underline;underline-offset:4px;font-size:14px;" onclick="openCheckin()">完成第一次打卡后可查看你的减碳成果</button>`
                         : `<p class="hero-trees">✓ 相当于为地球种植了 <strong>${trees}</strong> 棵侧柏</p>`
                     }
                 </div>
@@ -56,7 +90,6 @@ function renderHeroStats() {
             </div>
         `;
     } else {
-        // 未登录展示默认数据
         el.innerHTML = `
             <div class="blob"></div>
             <div class="hero-inner">
@@ -162,7 +195,8 @@ function renderCheckinCards() {
 function renderEventsPreview() {
     const el = document.getElementById("eventsPreview");
     if (!el) return;
-    el.innerHTML = EVENTS.slice(0, 4).map(e => `
+    const events = getActivities().slice(0, 4);
+    el.innerHTML = events.map(e => `
         <div class="event-item" onclick="showToast('活动报名即将上线')">
             <div class="event-thumb">${e.emoji}</div>
             <div class="event-info">
@@ -179,37 +213,27 @@ function renderEventsPreview() {
     `).join("");
 }
 
-// 渲染礼品预览
-function renderGiftPreview() {
-    const el = document.getElementById("giftPreview");
-    if (!el) return;
-    el.innerHTML = GIFTS.slice(0, 4).map(g => `
-        <div class="gift-card" onclick="location.href='shop.html'">
-            <div class="gift-img">${g.emoji}</div>
-            <div class="gift-body">
-                <h4>${g.name}</h4>
-                <div class="points">${g.points} 积分</div>
-                <div class="stock">库存 ${g.stock}</div>
-            </div>
-        </div>
-    `).join("");
-}
-
-// 渲染学院排行
+// 渲染学院排行（真实数据）
 let currentRange = "week";
 function renderRanking() {
     const el = document.getElementById("rankingList");
     if (!el) return;
-    const rows = COLLEGE_RANKING[currentRange];
-    const max = rows[0].kg;
+    const ranking = getCollegeRanking();
+
+    if (ranking.length === 0) {
+        el.innerHTML = `<li style="text-align:center;color:var(--text-muted);padding:20px;">暂无减碳记录，完成打卡后即可参与排行 🌱</li>`;
+        return;
+    }
+
+    const max = ranking[0].kg;
     const rankColors = ["gold", "silver", "bronze"];
-    el.innerHTML = rows.map((r, i) => `
+    el.innerHTML = ranking.map((r, i) => `
         <li class="ranking-item">
             <span class="rank-num ${rankColors[i] || ''}">${i + 1}</span>
             <div class="rank-body">
                 <div class="rank-row">
-                    <span class="rank-name">${r.name}</span>
-                    <span class="rank-kg">${r.kg.toLocaleString()} kg</span>
+                    <span class="rank-name">${r.name} <span style="color:var(--text-muted);font-size:12px;font-weight:normal;">(${r.users}人)</span></span>
+                    <span class="rank-kg">${formatKg(r.kg)} kg</span>
                 </div>
                 <div class="rank-bar">
                     <div class="rank-bar-fill" style="width:${Math.round((r.kg / max) * 92)}%"></div>
@@ -227,7 +251,7 @@ function switchRange(range) {
     renderRanking();
 }
 
-// 渲染环保资讯
+// 渲染环保资讯（含重要环保日期）
 function renderNews() {
     const el = document.getElementById("newsGrid");
     if (!el) return;
@@ -238,9 +262,14 @@ function renderNews() {
             <p class="desc">${item.desc}</p>
             <div class="badges">
                 <span class="badge-points badge-recycle">${item.tag}</span>
+                <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="event.stopPropagation();shareNews('${item.title}','${item.desc}')">📤 分享</button>
             </div>
         </div>
     `).join("");
+}
+
+function shareNews(title, desc) {
+    shareText(`🌿 校园环保资讯：${title}\n${desc}\n——来自校园环保网`);
 }
 
 // 渲染环保贴士
@@ -255,30 +284,65 @@ function renderTips() {
     `).join("");
 }
 
+// 渲染重要环保日期
+function renderEcoDates() {
+    const el = document.getElementById("ecoDatesGrid");
+    if (!el) return;
+    const today = new Date();
+    const todayStr = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    el.innerHTML = ECO_DATES.map(d => {
+        const isToday = d.date === todayStr;
+        return `
+            <div class="checkin-card" style="${isToday ? 'border-color:var(--primary);box-shadow:0 0 0 2px var(--primary);' : ''}min-height:auto;padding:16px;">
+                <div class="checkin-icon" style="width:36px;height:36px;font-size:18px;background:var(--emerald-100);margin-bottom:8px;">${d.emoji}</div>
+                <h3 style="font-size:14px;">${d.name} ${isToday ? '<span style="color:var(--primary);font-size:11px;">· 今天</span>' : ''}</h3>
+                <p class="desc" style="font-size:12px;">${d.date} · ${d.desc}</p>
+                <div class="badges" style="margin-top:6px;">
+                    <button class="btn btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="shareEcoDate('${d.name}','${d.date}','${d.desc}')">📤 分享</button>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+function shareEcoDate(name, date, desc) {
+    shareText(`🌍 ${name}（${date}）：${desc}\n——来自校园环保网`);
+}
+
 // 活动页渲染
 function renderActivities(filter = "全部") {
     const el = document.getElementById("activityList");
     if (!el) return;
-    const filtered = filter === "全部" ? EVENTS : EVENTS.filter(e => e.status === filter);
+    const events = getActivities();
+    const filtered = filter === "全部" ? events : events.filter(e => e.status === filter);
     if (filtered.length === 0) {
         el.innerHTML = `<div class="empty-state"><p>暂无相关活动</p></div>`;
         return;
     }
     el.innerHTML = filtered.map(e => `
-        <div class="event-item" onclick="showToast('活动报名即将上线')">
+        <div class="event-item">
             <div class="event-thumb" style="width:100px;height:100px;font-size:44px;">${e.emoji}</div>
             <div class="event-info">
                 <div>
                     <h4 style="font-size:16px;">${e.title}</h4>
                     <p class="place">📍 ${e.place}</p>
+                    ${e.desc ? `<p style="font-size:13px;color:var(--text-muted);margin-top:4px;">${e.desc}</p>` : ''}
                 </div>
                 <div class="meta">
                     <span class="time">🕐 ${e.time}</span>
-                    <span class="event-status ${e.status === '报名中' ? 'status-open' : 'status-wait'}">${e.status}</span>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <span class="event-status ${e.status === '报名中' ? 'status-open' : 'status-wait'}">${e.status}</span>
+                        <button class="btn btn-ghost" style="padding:2px 8px;font-size:12px;" onclick="shareActivity('${e.title}','${e.place}','${e.time}')">📤</button>
+                    </div>
                 </div>
             </div>
         </div>
     `).join("");
+}
+
+function shareActivity(title, place, time) {
+    shareText(`🌿 环保活动：${title}\n📍 地点：${place}\n🕐 时间：${time}\n快来一起参与吧！——来自校园环保网`);
 }
 
 function filterActivities(status) {
@@ -296,7 +360,6 @@ function openCheckin(kind) {
     }
     const modal = document.getElementById("checkinModal");
     const body = document.getElementById("checkinModalBody");
-    const title = KIND_LABEL[kind];
     const v = KIND_VISUAL[kind];
 
     let formHtml = "";
@@ -368,9 +431,9 @@ document.addEventListener("DOMContentLoaded", () => {
     renderHeroStats();
     renderCheckinCards();
     renderEventsPreview();
-    renderGiftPreview();
     renderRanking();
     renderNews();
+    renderEcoDates();
     renderTips();
     renderActivities();
 });

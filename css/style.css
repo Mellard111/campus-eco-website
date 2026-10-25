@@ -760,10 +760,23 @@ button {
     background: #fff;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.form-group select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    background: #fff;
+    cursor: pointer;
+    transition: var(--transition);
 }
 
 .auth-card .btn {
