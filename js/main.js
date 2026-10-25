@@ -338,6 +338,12 @@ function renderActivities(filter = "全部") {
             signupBtn = `<button class="btn btn-primary" onclick="location.href='login.html'">登录报名</button>`;
         }
 
+        // 管理员管理按钮
+        const adminBtns = user && user.role === "admin" ? `
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="editActivity('${e.id}')">✏️ 编辑</button>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;color:#ef4444;" onclick="deleteActivity('${e.id}')">🗑️ 删除</button>
+        ` : "";
+
         return `
         <div class="event-item">
             <div class="event-thumb" style="width:100px;height:100px;font-size:44px;">${e.emoji}</div>
@@ -349,9 +355,10 @@ function renderActivities(filter = "全部") {
                 </div>
                 <div class="meta">
                     <span class="time">🕐 ${e.time}</span>
-                    <div style="display:flex;gap:8px;align-items:center;">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                         <span class="event-status ${e.status === '报名中' ? 'status-open' : 'status-wait'}">${e.status}</span>
                         ${signupBtn}
+                        ${adminBtns}
                         <button class="btn btn-ghost" style="padding:2px 8px;font-size:12px;" onclick="shareActivity('${e.title}','${e.place}','${e.time}')">📤</button>
                     </div>
                 </div>
@@ -364,9 +371,34 @@ function renderActivities(filter = "全部") {
 function handleSignup(activityId, activityTitle) {
     const user = getCurrentUser();
     if (!user) { location.href = "login.html"; return; }
-    const result = signupActivity(user.id, user.username, activityId, activityTitle);
+    // 打开报名信息弹窗
+    document.getElementById("signupActivityId").value = activityId;
+    document.getElementById("signupActivityTitle").textContent = activityTitle;
+    document.getElementById("signupName").value = user.username;
+    document.getElementById("signupClass").value = user.className || "";
+    document.getElementById("signupStudentId").value = user.studentId || "";
+    document.getElementById("signupModal").classList.add("open");
+}
+
+function confirmSignup() {
+    const user = getCurrentUser();
+    const activityId = document.getElementById("signupActivityId").value;
+    const activityTitle = document.getElementById("signupActivityTitle").textContent;
+    const realName = document.getElementById("signupName").value.trim();
+    const className = document.getElementById("signupClass").value.trim();
+    const studentId = document.getElementById("signupStudentId").value.trim();
+
+    if (!realName || !className || !studentId) {
+        showToast("请填写姓名、班级和学号");
+        return;
+    }
+
+    const result = signupActivity(user.id, user.username, activityId, activityTitle, realName, className, studentId);
     showToast(result.message, result.success ? "success" : "");
-    renderActivities();
+    if (result.success) {
+        document.getElementById("signupModal").classList.remove("open");
+        renderActivities();
+    }
 }
 
 function shareActivity(title, place, time) {
@@ -481,12 +513,12 @@ function confirmCheckin() {
 
 // 页面加载
 document.addEventListener("DOMContentLoaded", () => {
-    renderHeroStats();
-    renderCheckinCards();
-    renderEventsPreview();
-    renderRanking();
-    renderNews();
-    renderEcoDates();
-    renderTips();
-    renderActivities();
+    try { renderHeroStats(); } catch(e) { console.error(e); }
+    try { renderCheckinCards(); } catch(e) { console.error(e); }
+    try { renderEventsPreview(); } catch(e) { console.error(e); }
+    try { renderRanking(); } catch(e) { console.error(e); }
+    try { renderNews(); } catch(e) { console.error(e); }
+    try { renderEcoDates(); } catch(e) { console.error(e); }
+    try { renderTips(); } catch(e) { console.error(e); }
+    try { renderActivities(); } catch(e) { console.error(e); }
 });

@@ -35,7 +35,7 @@ function saveSignups(list) {
 }
 
 // 用户报名活动
-function signupActivity(userId, username, activityId, activityTitle) {
+function signupActivity(userId, username, activityId, activityTitle, realName, className, studentId) {
     const signups = getSignups();
     // 检查是否已报名
     if (signups.some(s => s.userId === userId && s.activityId === activityId)) {
@@ -44,6 +44,9 @@ function signupActivity(userId, username, activityId, activityTitle) {
     signups.push({
         id: Date.now(),
         userId, username, activityId, activityTitle,
+        realName: realName || username,
+        className: className || "",
+        studentId: studentId || "",
         status: "pending",
         createdAt: new Date().toISOString()
     });

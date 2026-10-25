@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>环保动态 - 校园环保网</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .feed-container { max-width: 680px; margin: 0 auto; }
+        .post-box { background: #fff; border-radius: 16px; padding: 18px; box-shadow: var(--shadow-sm); margin-bottom: 20px; }
+        .post-box textarea { width: 100%; min-height: 80px; border: 1.5px solid var(--border); border-radius: 10px; padding: 12px; font-size: 14px; font-family: inherit; resize: vertical; }
+        .post-box textarea:focus { outline: none; border-color: var(--primary); }
+        .post-box-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .post-image-preview { max-width: 100%; max-height: 200px; border-radius: 10px; margin-top: 10px; }
+        .post { background: #fff; border-radius: 16px; padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+        .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .post-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--emerald-100); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 600; }
+        .post-user { font-weight: 600; font-size: 14px; }
+        .post-time { font-size: 12px; color: var(--text-muted); }
+        .post-content { font-size: 15px; line-height: 1.6; margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; }
+        .post-img { max-width: 100%; border-radius: 12px; margin-bottom: 10px; }
+        .post-actions { display: flex; gap: 20px; padding-top: 10px; border-top: 1px solid var(--border); }
+        .post-action { cursor: pointer; font-size: 14px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; user-select: none; }
+        .post-action:hover { color: var(--primary); }
+        .post-action.liked { color: var(--primary); }
+        .comments { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: none; }
+        .comments.open { display: block; }
+        .comment { margin-bottom: 8px; font-size: 13px; }
+        .comment-user { font-weight: 600; color: var(--emerald-700); }
+        .comment-input-row { display: flex; gap: 8px; margin-top: 8px; }
+        .comment-input-row input { flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 20px; font-size: 13px; }
+        .comment-input-row input:focus { outline: none; border-color: var(--primary); }
+        .comment-input-row button { padding: 8px 16px; border-radius: 20px; border: none; background: var(--primary); color: #fff; cursor: pointer; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">🌿</span>
+                <span>校园环保网</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="activities.html">环保活动</a></li>
+                <li><a href="feed.html" class="active">环保动态</a></li>
+                <li><a href="shop.html">积分商城</a></li>
+            </ul>
+            <div class="nav-user" id="navUser"></div>
+        </div>
+    </nav>
+
+    <div class="page-banner">
+        <h1>💬 环保动态</h1>
+        <p>分享你的低碳生活，与同学们一起守护绿色校园</p>
+    </div>
+
+    <div class="container feed-container">
+        <!-- 发帖框 -->
+        <div class="post-box" id="postBox">
+            <textarea id="postContent" placeholder="分享你的环保行动或心得...（如：今天步行去教学楼，减碳500g！）"></textarea>
+            <div id="postImagePreview"></div>
+            <div class="post-box-actions">
+                <label style="cursor:pointer;color:var(--primary);font-size:14px;display:flex;align-items:center;gap:4px;">
+                    📷 添加图片
+                    <input type="file" id="postImage" accept="image/*" style="display:none;" onchange="previewPostImage(this)">
+                </label>
+                <button class="btn btn-primary" onclick="submitPost()">发布动态</button>
+            </div>
+        </div>
+
+        <!-- 动态列表 -->
+        <div id="postList"></div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom">© 2024 校园环保网 · 让绿色成为校园最亮丽的底色 🌍</div>
+    </footer>
+
+    <script src="js/eco.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        let postImageData = "";
+
+        function previewPostImage(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                postImageData = e.target.result;
+                document.getElementById("postImagePreview").innerHTML = `<img src="${postImageData}" class="post-image-preview">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function submitPost() {
+            const user = getCurrentUser();
+            if (!user) { showToast("请先登录"); setTimeout(() => location.href = "login.html", 800); return; }
+            const content = document.getElementById("postContent").value.trim();
+            if (!content) { showToast("请输入分享内容"); return; }
+            const result = createPost(user.id, user.username, content, postImageData);
+            if (result.success) {
+                showToast(result.message, "success");
+                document.getElementById("postContent").value = "";
+                document.getElementById("postImagePreview").innerHTML = "";
+                postImageData = "";
+                document.getElementById("postImage").value = "";
+                renderPosts();
+            } else {
+                showToast(result.message);
+            }
+        }
+
+        function renderPosts() {
+            const user = getCurrentUser();
+            const posts = getPosts();
+            const el = document.getElementById("postList");
+            if (posts.length === 0) {
+                el.innerHTML = `<div class="empty-state"><p>还没有动态，来发布第一条吧 🌱</p></div>`;
+                return;
+            }
+            el.innerHTML = posts.map(p => {
+                const liked = user && p.likes.includes(user.id);
+                const isOwner = user && (p.userId === user.id || user.role === "admin");
+                return `
+                <div class="post">
+                    <div class="post-header">
+                        <div class="post-avatar">${p.username.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <div class="post-user">${p.username}</div>
+                            <div class="post-time">${formatDateTime(p.createdAt)}</div>
+                        </div>
+                        ${isOwner ? `<button onclick="handleDeletePost(${p.id})" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;">🗑️</button>` : ''}
+                    </div>
+                    <div class="post-content">${escapeHtml(p.content)}</div>
+                    ${p.image ? `<img src="${p.image}" class="post-img">` : ''}
+                    <div class="post-actions">
+                        <span class="post-action ${liked ? 'liked' : ''}" onclick="handleLike(${p.id})">${liked ? '❤️' : '🤍'} ${p.likes.length}</span>
+                        <span class="post-action" onclick="toggleComments(${p.id})">💬 ${p.comments.length}</span>
+                        <span class="post-action" onclick="sharePostText('${escapeHtml(p.content).replace(/'/g, "\\'")}')">📤 分享</span>
+                    </div>
+                    <div class="comments" id="comments_${p.id}">
+                        ${p.comments.map(c => `<div class="comment"><span class="comment-user">${c.username}：</span>${escapeHtml(c.content)}</div>`).join("")}
+                        ${user ? `
+                        <div class="comment-input-row">
+                            <input type="text" id="commentInput_${p.id}" placeholder="说点什么..." onkeypress="if(event.key==='Enter')handleComment(${p.id})">
+                            <button onclick="handleComment(${p.id})">发送</button>
+                        </div>` : ''}
+                    </div>
+                </div>
+                `;
+            }).join("");
+        }
+
+        function escapeHtml(s) {
+            const div = document.createElement("div");
+            div.textContent = s;
+            return div.innerHTML;
+        }
+
+        function handleLike(postId) {
+            const user = getCurrentUser();
+            if (!user) { showToast("请先登录"); return; }
+            toggleLike(postId, user.id);
+            renderPosts();
+        }
+
+        function toggleComments(postId) {
+            document.getElementById("comments_" + postId).classList.toggle("open");
+        }
+
+        function handleComment(postId) {
+            const user = getCurrentUser();
+            const input = document.getElementById("commentInput_" + postId);
+            const content = input.value.trim();
+            if (!content) return;
+            addComment(postId, user.id, user.username, content);
+            input.value = "";
+            renderPosts();
+            document.getElementById("comments_" + postId).classList.add("open");
+        }
+
+        function handleDeletePost(postId) {
+            const user = getCurrentUser();
+            if (!confirm("确定删除这条动态吗？")) return;
+            const result = deletePost(postId, user.id);
+            showToast(result.message, result.success ? "success" : "");
+            renderPosts();
+        }
+
+        function sharePostText(content) {
+            shareText(`🌿 校园环保动态：${content}\n——来自校园环保网`);
+        }
+
+        renderPosts();
+    </script>
+</body>
+</html>

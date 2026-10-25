@@ -16,6 +16,7 @@
             <ul class="nav-links">
                 <li><a href="index.html">首页</a></li>
                 <li><a href="activities.html" class="active">环保活动</a></li>
+                <li><a href="feed.html">环保动态</a></li>
                 <li><a href="carbon.html">碳足迹</a></li>
                 <li><a href="shop.html">积分商城</a></li>
             </ul>
@@ -29,10 +30,11 @@
     </div>
 
     <div class="container">
-        <!-- 管理员发布活动 -->
+        <!-- 管理员发布/编辑活动 -->
         <div id="adminPublishSection" style="display:none;margin-bottom:24px;">
             <div class="panel">
-                <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;">📢 管理员发布活动</h2>
+                <h2 id="publishTitle" style="font-size:18px;font-weight:700;margin-bottom:16px;">📢 发布新活动</h2>
+                <input type="hidden" id="actEditId" value="">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div class="form-group">
                         <label>活动标题</label>
@@ -63,7 +65,10 @@
                         </select>
                     </div>
                 </div>
-                <button class="btn btn-primary" onclick="publishActivity()">发布活动</button>
+                <div style="display:flex;gap:10px;">
+                    <button class="btn btn-primary" onclick="publishActivity()">保存活动</button>
+                    <button class="btn btn-outline" id="cancelEditBtn" style="display:none;" onclick="cancelEdit()">取消编辑</button>
+                </div>
             </div>
         </div>
 
@@ -74,6 +79,31 @@
             <button class="filter-btn" onclick="filterActivities('已结束')">已结束</button>
         </div>
         <div id="activityList"></div>
+    </div>
+
+    <!-- 报名弹窗 -->
+    <div class="modal-overlay" id="signupModal">
+        <div class="modal">
+            <h3>报名活动</h3>
+            <p style="color:var(--text-muted);margin-bottom:14px;" id="signupActivityTitle"></p>
+            <input type="hidden" id="signupActivityId">
+            <div class="form-group">
+                <label>姓名</label>
+                <input type="text" id="signupName" placeholder="请输入姓名">
+            </div>
+            <div class="form-group">
+                <label>班级</label>
+                <input type="text" id="signupClass" placeholder="如：环境2101班">
+            </div>
+            <div class="form-group">
+                <label>学号</label>
+                <input type="text" id="signupStudentId" placeholder="请输入学号">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="document.getElementById('signupModal').classList.remove('open')">取消</button>
+                <button class="btn btn-primary" onclick="confirmSignup()">确认报名</button>
+            </div>
+        </div>
     </div>
 
     <footer class="footer">
@@ -96,6 +126,7 @@
             const time = document.getElementById("actTime").value.trim();
             const desc = document.getElementById("actDesc").value.trim();
             const status = document.getElementById("actStatus").value;
+            const editId = document.getElementById("actEditId").value;
 
             if (!title || !place || !time) {
                 showToast("请填写活动标题、地点和时间");
@@ -103,19 +134,65 @@
             }
 
             const activities = getActivities();
-            activities.unshift({
-                id: "e" + Date.now(),
-                title, emoji, place, time, desc, status
-            });
+            if (editId) {
+                // 编辑模式
+                const idx = activities.findIndex(a => a.id === editId);
+                if (idx !== -1) {
+                    activities[idx] = { ...activities[idx], title, emoji, place, time, desc, status };
+                    showToast("活动修改成功！", "success");
+                }
+            } else {
+                // 新建
+                activities.unshift({
+                    id: "e" + Date.now(),
+                    title, emoji, place, time, desc, status
+                });
+                showToast("活动发布成功！", "success");
+            }
             saveActivities(activities);
+            clearForm();
+            renderActivities();
+        }
 
+        function editActivity(id) {
+            const act = getActivities().find(a => a.id === id);
+            if (!act) return;
+            document.getElementById("actEditId").value = id;
+            document.getElementById("actTitle").value = act.title;
+            document.getElementById("actEmoji").value = act.emoji;
+            document.getElementById("actPlace").value = act.place;
+            document.getElementById("actTime").value = act.time;
+            document.getElementById("actDesc").value = act.desc || "";
+            document.getElementById("actStatus").value = act.status;
+            document.getElementById("publishTitle").textContent = "✏️ 编辑活动";
+            document.getElementById("cancelEditBtn").style.display = "inline-block";
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function cancelEdit() {
+            clearForm();
+        }
+
+        function clearForm() {
+            document.getElementById("actEditId").value = "";
             document.getElementById("actTitle").value = "";
+            document.getElementById("actEmoji").value = "🌱";
             document.getElementById("actPlace").value = "";
             document.getElementById("actTime").value = "";
             document.getElementById("actDesc").value = "";
-            document.getElementById("actEmoji").value = "🌱";
+            document.getElementById("actStatus").value = "报名中";
+            document.getElementById("publishTitle").textContent = "📢 发布新活动";
+            document.getElementById("cancelEditBtn").style.display = "none";
+        }
 
-            showToast("活动发布成功！", "success");
+        function deleteActivity(id) {
+            if (!confirm("确定删除该活动吗？相关报名记录也会被移除。")) return;
+            let activities = getActivities().filter(a => a.id !== id);
+            saveActivities(activities);
+            // 同时删除相关报名
+            const signups = getSignups().filter(s => s.activityId !== id);
+            saveSignups(signups);
+            showToast("活动已删除", "success");
             renderActivities();
         }
     </script>

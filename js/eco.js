@@ -54,18 +54,18 @@ const RECYCLE_CATEGORIES = [
     { id: "electronics", name: "电子产品", pointsPerKg: 30, gramsPerKg: 5000 }
 ];
 
-// 礼品列表（高积分兑换）
+// 礼品列表（高积分兑换，均需1000积分以上）
 const GIFTS = [
-    { id: "g1", name: "环保帆布袋", points: 500, stock: 100, emoji: "👜" },
-    { id: "g2", name: "不锈钢水杯", points: 1200, stock: 50, emoji: "🥤" },
-    { id: "g3", name: "多肉植物盆栽", points: 800, stock: 30, emoji: "🪴" },
-    { id: "g4", name: "竹纤维笔记本", points: 600, stock: 80, emoji: "📓" },
-    { id: "g5", name: "环保主题T恤", points: 2000, stock: 20, emoji: "👕" },
-    { id: "g6", name: "可降解餐具套装", points: 1500, stock: 40, emoji: "🍴" },
-    { id: "g7", name: "种子盲盒", points: 300, stock: 200, emoji: "🌱" },
-    { id: "g8", name: "太阳能充电宝", points: 5000, stock: 5, emoji: "🔋" },
-    { id: "g9", name: "环保购物车", points: 3000, stock: 10, emoji: "🛒" },
-    { id: "g10", name: "空气净化器", points: 8000, stock: 3, emoji: "💨" }
+    { id: "g1", name: "环保帆布袋", points: 1000, stock: 100, emoji: "👜" },
+    { id: "g2", name: "竹纤维笔记本", points: 1200, stock: 80, emoji: "📓" },
+    { id: "g3", name: "多肉植物盆栽", points: 1500, stock: 30, emoji: "🪴" },
+    { id: "g4", name: "不锈钢水杯", points: 2000, stock: 50, emoji: "🥤" },
+    { id: "g5", name: "可降解餐具套装", points: 2500, stock: 40, emoji: "🍴" },
+    { id: "g6", name: "环保主题T恤", points: 3000, stock: 20, emoji: "👕" },
+    { id: "g7", name: "环保购物车", points: 4000, stock: 10, emoji: "🛒" },
+    { id: "g8", name: "太阳能充电宝", points: 6000, stock: 5, emoji: "🔋" },
+    { id: "g9", name: "空气净化器", points: 10000, stock: 3, emoji: "💨" },
+    { id: "g10", name: "环保大礼包", points: 15000, stock: 2, emoji: "🎁" }
 ];
 
 // 学院排行数据
@@ -414,6 +414,61 @@ function shareText(text) {
     }
 }
 
+// ===== 站内分享（环保动态帖子）=====
+const POSTS_KEY = "campus_eco_posts";
+
+function getPosts() {
+    const data = localStorage.getItem(POSTS_KEY);
+    return data ? JSON.parse(data) : [];
+}
+
+function savePosts(list) {
+    localStorage.setItem(POSTS_KEY, JSON.stringify(list));
+}
+
+function createPost(userId, username, content, image) {
+    if (!content.trim()) return { success: false, message: "请输入分享内容" };
+    const posts = getPosts();
+    posts.unshift({
+        id: Date.now(),
+        userId, username, content, image: image || "",
+        likes: [], comments: [],
+        createdAt: new Date().toISOString()
+    });
+    savePosts(posts);
+    return { success: true, message: "发布成功！" };
+}
+
+function deletePost(postId, userId) {
+    const posts = getPosts();
+    const idx = posts.findIndex(p => p.id === postId);
+    if (idx === -1) return { success: false, message: "帖子不存在" };
+    if (posts[idx].userId !== userId && !isAdmin()) return { success: false, message: "无权删除" };
+    posts.splice(idx, 1);
+    savePosts(posts);
+    return { success: true, message: "已删除" };
+}
+
+function toggleLike(postId, userId) {
+    const posts = getPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    const i = post.likes.indexOf(userId);
+    if (i === -1) post.likes.push(userId);
+    else post.likes.splice(i, 1);
+    savePosts(posts);
+    return post.likes.length;
+}
+
+function addComment(postId, userId, username, content) {
+    if (!content.trim()) return;
+    const posts = getPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    post.comments.push({ userId, username, content, createdAt: new Date().toISOString() });
+    savePosts(posts);
+}
+
 function copyToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => {
@@ -439,6 +494,14 @@ function fallbackCopy(text) {
     }
     document.body.removeChild(ta);
 }
+
+// 全局错误捕获，防止页面崩溃白屏
+window.addEventListener("error", function(e) {
+    console.error("全局错误:", e.message);
+});
+window.addEventListener("unhandledrejection", function(e) {
+    console.error("未处理的Promise:", e.reason);
+});
 
 // Toast 提示
 function showToast(message, type = "") {

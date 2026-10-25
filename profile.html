@@ -16,6 +16,7 @@
             <ul class="nav-links">
                 <li><a href="index.html">首页</a></li>
                 <li><a href="activities.html">环保活动</a></li>
+                <li><a href="feed.html">环保动态</a></li>
                 <li><a href="carbon.html">碳足迹</a></li>
                 <li><a href="shop.html">积分商城</a></li>
             </ul>
@@ -83,6 +84,8 @@
     <script src="js/auth.js"></script>
     <script src="js/main.js"></script>
     <script>
+        const proofCache = {};
+
         function renderProfile() {
             const user = getCurrentUser();
             if (!user) { window.location.href = "login.html"; return; }
@@ -104,9 +107,12 @@
                             : e.status === "rejected"
                             ? '<span style="color:#ef4444;font-size:12px;">✗ 已拒绝</span>'
                             : '<span style="color:#f59e0b;font-size:12px;">⏳ 审核中</span>';
-                        const proofIcon = e.proof 
-                            ? `<span style="cursor:pointer;" onclick="viewProof('${encodeURIComponent(e.proof)}', '${e.proofName || ''}')">📎</span>` 
-                            : '';
+                        let proofIcon = '';
+                        if (e.proof) {
+                            const cacheKey = "p_" + e.id;
+                            proofCache[cacheKey] = e.proof;
+                            proofIcon = `<span style="cursor:pointer;" onclick="viewProof('${cacheKey}')" title="查看凭证">📎</span>`;
+                        }
                         return `
                         <li class="entry-item">
                             <div class="entry-info">
@@ -223,10 +229,11 @@
         }
 
         // 查看凭证
-        function viewProof(proofB64, name) {
-            const proof = decodeURIComponent(proofB64);
+        function viewProof(cacheKey) {
+            const proof = proofCache[cacheKey];
+            if (!proof) { showToast("凭证加载失败"); return; }
             const isImage = proof.startsWith("data:image");
-            document.getElementById("proofTitle").textContent = name || "打卡凭证";
+            document.getElementById("proofTitle").textContent = "打卡凭证";
             document.getElementById("proofPreview").innerHTML = isImage
                 ? `<img src="${proof}" style="max-width:100%;max-height:400px;border-radius:10px;">`
                 : `<iframe src="${proof}" style="width:100%;height:400px;border:none;border-radius:10px;"></iframe>`;
