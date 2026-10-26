@@ -391,12 +391,14 @@ function shareNews(title, desc) {
 function renderTips() {
     const el = document.getElementById("tipsList");
     if (!el) return;
-    el.innerHTML = ECO_TIPS.map((t, i) => `
-        <div style="background:var(--card);border-left:4px solid var(--primary);padding:16px 20px;border-radius:10px;margin-bottom:12px;box-shadow:var(--shadow-sm);">
-            <h4 style="color:var(--emerald-700);margin-bottom:4px;">💡 小贴士 ${i + 1}：${t.title}</h4>
-            <p style="color:var(--text-muted);font-size:14px;">${t.desc}</p>
+    const slides = ECO_TIPS.map((t, i) => `
+        <div class="checkin-card" style="min-height:auto;padding:18px 20px;border-left:4px solid var(--primary);">
+            <h4 style="color:var(--emerald-700);margin-bottom:6px;">💡 小贴士 ${i + 1}：${t.title}</h4>
+            <p class="desc" style="font-size:14px;">${t.desc}</p>
         </div>
-    `).join("");
+    `);
+    el.innerHTML = carouselHTML("tipsCarousel", slides);
+    initCarousel("tipsCarousel", slides.map(slideDuration));
 }
 
 // 渲染重要环保日期（卡片翻滚 + 倒计时）
