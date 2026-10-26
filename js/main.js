@@ -121,14 +121,15 @@ function renderHeroStats() {
     }
 }
 
-// ===== 卡片轮播：每 5 秒翻一页，鼠标悬停暂停 =====
+// ===== 卡片轮播：按卡片字数决定停留时长，鼠标悬停暂停 =====
 const carouselTimers = {};
 
-function initCarousel(id, count, interval = 5000) {
+function initCarousel(id, durations) {
     if (carouselTimers[id]) {
-        clearInterval(carouselTimers[id]);
+        clearTimeout(carouselTimers[id]);
         delete carouselTimers[id];
     }
+    const count = (durations || []).length;
     const root = document.getElementById(id);
     if (!root || count <= 1) return;
     const track = root.querySelector(".carousel-track");
@@ -142,16 +143,19 @@ function initCarousel(id, count, interval = 5000) {
     }
     function stop() {
         if (carouselTimers[id]) {
-            clearInterval(carouselTimers[id]);
+            clearTimeout(carouselTimers[id]);
             delete carouselTimers[id];
         }
     }
-    function start() {
+    // 每一页按该页文字量单独计算停留时长
+    function schedule() {
         stop();
-        carouselTimers[id] = setInterval(() => {
+        const wait = durations[idx] || 5000;
+        carouselTimers[id] = setTimeout(() => {
             idx = (idx + 1) % count;
             paint();
-        }, interval);
+            schedule();
+        }, wait);
     }
 
     dots.forEach((d, k) => {
@@ -159,13 +163,26 @@ function initCarousel(id, count, interval = 5000) {
             stop();
             idx = k;
             paint();
-            start();
+            schedule();
         });
     });
     root.addEventListener("mouseenter", stop);
-    root.addEventListener("mouseleave", start);
+    root.addEventListener("mouseleave", schedule);
     paint();
-    start();
+    schedule();
+}
+
+// 按字数估算阅读时长：基础 3 秒 + 每字 0.2 秒（约 5 字/秒），限制 4–15 秒
+function readingTime(text) {
+    const chars = (text || "").replace(/\s/g, "").length;
+    return Math.max(4000, Math.min(15000, 3000 + chars * 200));
+}
+
+// 取卡片最终可见文字量来决定停留时间
+function slideDuration(html) {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return readingTime(div.textContent);
 }
 
 function carouselHTML(id, slides) {
@@ -280,7 +297,7 @@ function renderCheckinCards() {
         ${hint}
         ${carouselHTML("checkinCarousel", cards)}
     `;
-    initCarousel("checkinCarousel", cards.length, 5000);
+    initCarousel("checkinCarousel", cards.map(slideDuration));
 }
 
 // 渲染活动列表
@@ -308,7 +325,7 @@ function renderEventsPreview() {
         </div>
     `);
     el.innerHTML = carouselHTML("eventsCarousel", slides);
-    initCarousel("eventsCarousel", slides.length, 5000);
+    initCarousel("eventsCarousel", slides.map(slideDuration));
 }
 
 // 渲染学院排行（真实数据）
@@ -403,7 +420,7 @@ function renderEcoDates() {
         `;
     });
     el.innerHTML = carouselHTML("ecoDatesCarousel", slides);
-    initCarousel("ecoDatesCarousel", slides.length, 5000);
+    initCarousel("ecoDatesCarousel", slides.map(slideDuration));
 }
 
 // 渲染首页环保咨询：机构官网轮播 + 最新资讯
@@ -422,7 +439,7 @@ function renderConsult() {
             </div>
         `);
         siteEl.innerHTML = carouselHTML("consultSiteCarousel", slides);
-        initCarousel("consultSiteCarousel", slides.length, 5000);
+        initCarousel("consultSiteCarousel", slides.map(slideDuration));
     }
 
     const newsEl = document.getElementById("consultNews");
