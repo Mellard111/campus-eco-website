@@ -26,12 +26,23 @@ const COLLEGES = [
 const SIGNUPS_KEY = "campus_eco_signups";
 
 function getSignups() {
-    const data = localStorage.getItem(SIGNUPS_KEY);
-    return data ? JSON.parse(data) : [];
+    try {
+        const data = localStorage.getItem(SIGNUPS_KEY);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        console.error("报名数据解析失败：", e);
+        return [];
+    }
 }
 
 function saveSignups(list) {
-    localStorage.setItem(SIGNUPS_KEY, JSON.stringify(list));
+    try {
+        localStorage.setItem(SIGNUPS_KEY, JSON.stringify(list));
+        return true;
+    } catch (e) {
+        console.error("报名数据写入失败（存储已满）：", e);
+        return false;
+    }
 }
 
 // 用户报名活动
@@ -76,12 +87,23 @@ function reviewSignup(signupId, status) {
 }
 
 function getUsers() {
-    const data = localStorage.getItem(AUTH_KEY);
-    return data ? JSON.parse(data) : [];
+    try {
+        const data = localStorage.getItem(AUTH_KEY);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        console.error("用户数据解析失败：", e);
+        return [];
+    }
 }
 
 function saveUsers(users) {
-    localStorage.setItem(AUTH_KEY, JSON.stringify(users));
+    try {
+        localStorage.setItem(AUTH_KEY, JSON.stringify(users));
+        return true;
+    } catch (e) {
+        console.error("用户数据写入失败（存储已满）：", e);
+        return false;
+    }
 }
 
 // 初始化管理员账号（仅首次运行时创建）
@@ -174,8 +196,12 @@ function updateCurrentUser(updates) {
     const users = getUsers();
     const idx = users.findIndex(u => u.id === session.id);
     if (idx === -1) return null;
+    if (updates.studentId && users.some((u, i) => i !== idx && u.studentId === updates.studentId)) {
+        return { error: "该学号已被其他账号使用" };
+    }
     if (updates.password) users[idx].password = btoa(updates.password);
     if (updates.email) { users[idx].email = updates.email; session.email = updates.email; }
+    if (updates.studentId) { users[idx].studentId = updates.studentId; session.studentId = updates.studentId; }
     if (updates.className) { users[idx].className = updates.className; session.className = updates.className; }
     if (updates.college) { users[idx].college = updates.college; session.college = updates.college; }
     saveUsers(users);

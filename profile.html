@@ -17,6 +17,7 @@
                 <li><a href="index.html">首页</a></li>
                 <li><a href="activities.html">环保活动</a></li>
                 <li><a href="feed.html">环保动态</a></li>
+                <li><a href="consult.html">环保咨询</a></li>
                 <li><a href="carbon.html">碳足迹</a></li>
                 <li><a href="shop.html">积分商城</a></li>
             </ul>
@@ -33,6 +34,10 @@
             <div class="form-group">
                 <label for="editEmail">邮箱</label>
                 <input type="email" id="editEmail" placeholder="新邮箱">
+            </div>
+            <div class="form-group">
+                <label for="editStudentId">学号</label>
+                <input type="text" id="editStudentId" placeholder="请输入学号">
             </div>
             <div class="form-group">
                 <label for="editCollege">学院</label>
@@ -185,6 +190,7 @@
         function showEditModal() {
             const user = getCurrentUser();
             document.getElementById("editEmail").value = user.email;
+            document.getElementById("editStudentId").value = user.studentId || "";
             document.getElementById("editClassName").value = user.className || "";
             const sel = document.getElementById("editCollege");
             sel.innerHTML = '<option value="">请选择学院</option>';
@@ -203,17 +209,23 @@
 
         function saveProfile() {
             const email = document.getElementById("editEmail").value.trim();
+            const studentId = document.getElementById("editStudentId").value.trim();
             const college = document.getElementById("editCollege").value;
             const className = document.getElementById("editClassName").value.trim();
             const password = document.getElementById("editPassword").value;
             const updates = {};
             if (email) updates.email = email;
+            if (studentId) updates.studentId = studentId;
             if (college) updates.college = college;
             if (className) updates.className = className;
             if (password && password.length >= 6) updates.password = password;
             if (password && password.length < 6) { showToast("密码至少需要6个字符"); return; }
 
             const updated = updateCurrentUser(updates);
+            if (updated && updated.error) {
+                showToast(updated.error);
+                return;
+            }
             if (updated) {
                 showToast("资料修改成功！", "success");
                 hideEditModal();

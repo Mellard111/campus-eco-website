@@ -128,12 +128,65 @@ const ECO_DATA_KEY = "campus_eco_data";
 
 // 获取所有用户的环保数据
 function getAllEcoData() {
-    const data = localStorage.getItem(ECO_DATA_KEY);
-    return data ? JSON.parse(data) : {};
+    try {
+        const data = localStorage.getItem(ECO_DATA_KEY);
+        return data ? JSON.parse(data) : {};
+    } catch (e) {
+        console.error("环保数据解析失败，已重置：", e);
+        return {};
+    }
+}
+
+// 安全的 localStorage 写入：配额超限时不再静默失败
+function safeSetItem(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch (e) {
+        console.error("localStorage 写入失败：", e);
+        return false;
+    }
 }
 
 function saveAllEcoData(data) {
-    localStorage.setItem(ECO_DATA_KEY, JSON.stringify(data));
+    return safeSetItem(ECO_DATA_KEY, JSON.stringify(data));
+}
+
+// 压缩图片（限制最大边长 + JPEG 质量），避免 base64 撑爆 localStorage
+function compressImage(file, maxSide = 900, quality = 0.72) {
+    return new Promise((resolve, reject) => {
+        const MAX_BYTES = 2 * 1024 * 1024;
+        if (!file.type.startsWith("image/")) {
+            if (file.size > MAX_BYTES) { reject(new Error("非图片文件不能超过 2MB")); return; }
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = () => reject(new Error("文件读取失败"));
+            reader.readAsDataURL(file);
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                let w = img.width, h = img.height;
+                if (w > maxSide || h > maxSide) {
+                    const scale = Math.min(maxSide / w, maxSide / h);
+                    w = Math.round(w * scale);
+                    h = Math.round(h * scale);
+                }
+                const canvas = document.createElement("canvas");
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL("image/jpeg", quality));
+            };
+            img.onerror = () => reject(new Error("图片解析失败"));
+            img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error("图片读取失败"));
+        reader.readAsDataURL(file);
+    });
 }
 
 // 获取当前用户的环保数据
@@ -183,7 +236,7 @@ function getUserEcoData(userId) {
 function saveUserEcoData(userId, data) {
     const all = getAllEcoData();
     all[userId] = data;
-    saveAllEcoData(all);
+    return saveAllEcoData(all);
 }
 
 // 执行打卡（需上传凭证，提交后为待审核状态）
@@ -262,7 +315,9 @@ function doCheckin(userId, kind, options = {}) {
         createdAt: new Date().toISOString()
     });
 
-    saveUserEcoData(userId, data);
+    if (!saveUserEcoData(userId, data)) {
+        return { success: false, message: "本地存储空间已满，请清理浏览器数据后重试" };
+    }
 
     return {
         success: true,
@@ -305,7 +360,9 @@ function reviewCheckin(userId, entryId, status) {
         else if (entry.kind === "recycle") data.usage.recycle.monthPoints = Math.max(0, data.usage.recycle.monthPoints - entry.points);
     }
 
-    saveUserEcoData(userId, data);
+    if (!saveUserEcoData(userId, data)) {
+        return { success: false, message: "本地存储空间已满，审核结果未能保存" };
+    }
     return { success: true, message: status === "approved" ? "已通过，积分已发放" : "已拒绝" };
 }
 
@@ -353,7 +410,9 @@ function redeemGift(userId, giftId) {
     });
 
     gift.stock--;
-    saveUserEcoData(userId, data);
+    if (!saveUserEcoData(userId, data)) {
+        return { success: false, message: "本地存储空间已满，兑换失败" };
+    }
 
     return {
         success: true,
@@ -418,12 +477,23 @@ function shareText(text) {
 const POSTS_KEY = "campus_eco_posts";
 
 function getPosts() {
-    const data = localStorage.getItem(POSTS_KEY);
-    return data ? JSON.parse(data) : [];
+    try {
+        const data = localStorage.getItem(POSTS_KEY);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        console.error("动态数据解析失败：", e);
+        return [];
+    }
 }
 
 function savePosts(list) {
-    localStorage.setItem(POSTS_KEY, JSON.stringify(list));
+    try {
+        localStorage.setItem(POSTS_KEY, JSON.stringify(list));
+        return true;
+    } catch (e) {
+        console.error("动态数据写入失败（存储已满）：", e);
+        return false;
+    }
 }
 
 function createPost(userId, username, content, image) {
@@ -495,12 +565,38 @@ function fallbackCopy(text) {
     document.body.removeChild(ta);
 }
 
+// 存储过大时自动清理已审核记录的历史凭证，避免超出 localStorage 配额
+function pruneOldProofs(maxChars = 3 * 1024 * 1024) {
+    let raw = null;
+    try { raw = localStorage.getItem(ECO_DATA_KEY); } catch (e) { return; }
+    if (!raw || raw.length <= maxChars) return;
+    const all = getAllEcoData();
+    let changed = false;
+    Object.keys(all).forEach(uid => {
+        (all[uid].entries || []).forEach(entry => {
+            if (entry.status !== "pending" && entry.proof) {
+                entry.proof = "";
+                entry.proofName = entry.proofName ? entry.proofName + "（已清理）" : "";
+                changed = true;
+            }
+        });
+    });
+    if (changed) {
+        saveAllEcoData(all);
+        console.info("本地存储过大，已清理历史打卡凭证图片");
+    }
+}
+
 // 全局错误捕获，防止页面崩溃白屏
 window.addEventListener("error", function(e) {
     console.error("全局错误:", e.message);
 });
 window.addEventListener("unhandledrejection", function(e) {
     console.error("未处理的Promise:", e.reason);
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    try { pruneOldProofs(); } catch (e) { console.error(e); }
 });
 
 // Toast 提示

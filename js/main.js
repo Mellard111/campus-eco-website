@@ -37,8 +37,13 @@ const ECO_TIPS = [
 // 获取活动列表（从 localStorage 读取，管理员发布）
 const ACTIVITIES_KEY = "campus_eco_activities";
 function getActivities() {
-    const data = localStorage.getItem(ACTIVITIES_KEY);
-    if (data) return JSON.parse(data);
+    let data = null;
+    try {
+        data = localStorage.getItem(ACTIVITIES_KEY);
+        if (data) return JSON.parse(data);
+    } catch (e) {
+        console.error("活动数据解析失败：", e);
+    }
     // 默认活动
     const defaults = [
         { id: "e1", title: "周末旧物交换市集", place: "学生活动中心广场", time: "10/24 14:00", status: "报名中", emoji: "🎪", desc: "带上闲置物品来交换，让旧物焕发新生。" },
@@ -197,7 +202,7 @@ function renderEventsPreview() {
     if (!el) return;
     const events = getActivities().slice(0, 4);
     el.innerHTML = events.map(e => `
-        <div class="event-item" onclick="showToast('活动报名即将上线')">
+        <div class="event-item" style="cursor:pointer;" onclick="location.href='activities.html'">
             <div class="event-thumb">${e.emoji}</div>
             <div class="event-info">
                 <div>
@@ -489,9 +494,9 @@ function confirmCheckin() {
     }
 
     const file = fileInput.files[0];
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        options.proof = e.target.result; // base64
+    // 先压缩图片再存 base64，避免撑爆 localStorage
+    compressImage(file).then(dataUrl => {
+        options.proof = dataUrl;
         options.proofName = file.name;
 
         const result = doCheckin(user.id, kind, options);
@@ -504,11 +509,9 @@ function confirmCheckin() {
         } else {
             showToast(result.message);
         }
-    };
-    reader.onerror = function() {
-        showToast("文件读取失败，请重试");
-    };
-    reader.readAsDataURL(file);
+    }).catch(err => {
+        showToast(err.message || "文件处理失败，请重试");
+    });
 }
 
 // 页面加载
