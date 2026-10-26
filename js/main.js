@@ -172,10 +172,10 @@ function initCarousel(id, durations) {
     schedule();
 }
 
-// 按字数估算阅读时长：基础 3 秒 + 每字 0.2 秒（约 5 字/秒），限制 4–15 秒
+// 按字数估算阅读时长：基础 4 秒 + 每字 0.2 秒（约 5 字/秒），限制 5–20 秒
 function readingTime(text) {
     const chars = (text || "").replace(/\s/g, "").length;
-    return Math.max(4000, Math.min(15000, 3000 + chars * 200));
+    return Math.max(5000, Math.min(20000, 4000 + chars * 200));
 }
 
 // 取卡片最终可见文字量来决定停留时间
