@@ -1206,7 +1206,7 @@ button {
     margin-bottom: 14px;
 }
 
-/* ===== 卡片轮播（每 1 秒翻一页） ===== */
+/* ===== 卡片轮播（每 5 秒翻一页） ===== */
 .carousel {
     position: relative;
 }

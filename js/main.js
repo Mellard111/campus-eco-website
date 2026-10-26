@@ -121,10 +121,10 @@ function renderHeroStats() {
     }
 }
 
-// ===== 卡片轮播：每 1 秒翻一页，鼠标悬停暂停 =====
+// ===== 卡片轮播：每 5 秒翻一页，鼠标悬停暂停 =====
 const carouselTimers = {};
 
-function initCarousel(id, count, interval = 1000) {
+function initCarousel(id, count, interval = 5000) {
     if (carouselTimers[id]) {
         clearInterval(carouselTimers[id]);
         delete carouselTimers[id];
@@ -280,7 +280,7 @@ function renderCheckinCards() {
         ${hint}
         ${carouselHTML("checkinCarousel", cards)}
     `;
-    initCarousel("checkinCarousel", cards.length, 1000);
+    initCarousel("checkinCarousel", cards.length, 5000);
 }
 
 // 渲染活动列表
@@ -308,7 +308,7 @@ function renderEventsPreview() {
         </div>
     `);
     el.innerHTML = carouselHTML("eventsCarousel", slides);
-    initCarousel("eventsCarousel", slides.length, 1000);
+    initCarousel("eventsCarousel", slides.length, 5000);
 }
 
 // 渲染学院排行（真实数据）
@@ -403,7 +403,7 @@ function renderEcoDates() {
         `;
     });
     el.innerHTML = carouselHTML("ecoDatesCarousel", slides);
-    initCarousel("ecoDatesCarousel", slides.length, 1000);
+    initCarousel("ecoDatesCarousel", slides.length, 5000);
 }
 
 // 渲染首页环保咨询：机构官网轮播 + 最新资讯
@@ -422,7 +422,7 @@ function renderConsult() {
             </div>
         `);
         siteEl.innerHTML = carouselHTML("consultSiteCarousel", slides);
-        initCarousel("consultSiteCarousel", slides.length, 1000);
+        initCarousel("consultSiteCarousel", slides.length, 5000);
     }
 
     const newsEl = document.getElementById("consultNews");
