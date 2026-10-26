@@ -1205,3 +1205,104 @@ button {
     font-size: 14px;
     margin-bottom: 14px;
 }
+
+/* ===== 卡片轮播（每 1 秒翻一页） ===== */
+.carousel {
+    position: relative;
+}
+
+.carousel-viewport {
+    overflow: hidden;
+    border-radius: var(--radius-2xl);
+}
+
+.carousel-track {
+    display: flex;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.carousel-slide {
+    min-width: 100%;
+    box-sizing: border-box;
+    padding: 2px;
+}
+
+.carousel-slide > * {
+    width: 100%;
+}
+
+.carousel-slide .checkin-card {
+    height: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.carousel-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--border);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.carousel-dot.active {
+    width: 20px;
+    border-radius: 4px;
+    background: var(--primary);
+}
+
+.date-countdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--emerald-50);
+    color: var(--emerald-700);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.date-countdown.today {
+    background: var(--primary);
+    color: #fff;
+}
+
+.consult-news-item {
+    display: flex;
+    gap: 10px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.consult-news-item:last-child {
+    border-bottom: none;
+}
+
+.consult-news-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.consult-news-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+
+.consult-news-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

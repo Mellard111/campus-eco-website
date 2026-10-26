@@ -599,6 +599,13 @@ document.addEventListener("DOMContentLoaded", function() {
     try { pruneOldProofs(); } catch (e) { console.error(e); }
 });
 
+// 从 bfcache 恢复时强制重新加载，避免旧页面 DOM 缓存导致内容重复渲染
+window.addEventListener("pageshow", function(e) {
+    if (e.persisted) {
+        location.reload();
+    }
+});
+
 // Toast 提示
 function showToast(message, type = "") {
     let toast = document.querySelector(".toast");

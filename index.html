@@ -18,7 +18,6 @@
                 <li><a href="index.html" class="active">首页</a></li>
                 <li><a href="activities.html">环保活动</a></li>
                 <li><a href="feed.html">环保动态</a></li>
-                <li><a href="consult.html">环保咨询</a></li>
                 <li><a href="carbon.html">碳足迹</a></li>
                 <li><a href="shop.html">积分商城</a></li>
             </ul>
@@ -70,13 +69,24 @@
             <h2>📅 重要环保日期</h2>
             <span style="font-size:13px;color:var(--text-muted);">点击分享，传播环保理念</span>
         </div>
-        <div class="checkin-grid" id="ecoDatesGrid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));"></div>
+        <div id="ecoDatesGrid"></div>
 
-        <!-- 环保资讯 -->
+        <!-- 环保咨询 -->
         <div class="section-head">
-            <h2>环保资讯</h2>
+            <h2>🔎 环保咨询</h2>
+            <span style="font-size:13px;color:var(--text-muted);">权威机构官网 · 最新环保资讯</span>
         </div>
-        <div class="checkin-grid" id="newsGrid"></div>
+        <div class="two-col">
+            <section>
+                <div id="consultCarousel"></div>
+            </section>
+            <section>
+                <div class="panel" style="padding:16px 20px;">
+                    <h3 style="font-size:15px;margin-bottom:6px;">📰 最新资讯</h3>
+                    <div id="consultNews"></div>
+                </div>
+            </section>
+        </div>
 
         <!-- 环保贴士 -->
         <div class="section-head">

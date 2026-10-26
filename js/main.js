@@ -121,6 +121,92 @@ function renderHeroStats() {
     }
 }
 
+// ===== 卡片轮播：每 1 秒翻一页，鼠标悬停暂停 =====
+const carouselTimers = {};
+
+function initCarousel(id, count, interval = 1000) {
+    if (carouselTimers[id]) {
+        clearInterval(carouselTimers[id]);
+        delete carouselTimers[id];
+    }
+    const root = document.getElementById(id);
+    if (!root || count <= 1) return;
+    const track = root.querySelector(".carousel-track");
+    const dots = root.querySelectorAll(".carousel-dot");
+    if (!track) return;
+    let idx = 0;
+
+    function paint() {
+        track.style.transform = `translateX(-${idx * 100}%)`;
+        dots.forEach((d, k) => d.classList.toggle("active", k === idx));
+    }
+    function stop() {
+        if (carouselTimers[id]) {
+            clearInterval(carouselTimers[id]);
+            delete carouselTimers[id];
+        }
+    }
+    function start() {
+        stop();
+        carouselTimers[id] = setInterval(() => {
+            idx = (idx + 1) % count;
+            paint();
+        }, interval);
+    }
+
+    dots.forEach((d, k) => {
+        d.addEventListener("click", () => {
+            stop();
+            idx = k;
+            paint();
+            start();
+        });
+    });
+    root.addEventListener("mouseenter", stop);
+    root.addEventListener("mouseleave", start);
+    paint();
+    start();
+}
+
+function carouselHTML(id, slides) {
+    if (!slides || slides.length === 0) return "";
+    const dots = slides.map((_, i) => `<span class="carousel-dot ${i === 0 ? "active" : ""}"></span>`).join("");
+    const items = slides.map(html => `<div class="carousel-slide">${html}</div>`).join("");
+    return `
+        <div class="carousel" id="${id}">
+            <div class="carousel-viewport">
+                <div class="carousel-track">${items}</div>
+            </div>
+            <div class="carousel-dots">${dots}</div>
+        </div>
+    `;
+}
+
+// 距离下一个纪念日还有几天
+function daysUntilDate(dateStr) {
+    const parts = dateStr.split("-").map(Number);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let target = new Date(now.getFullYear(), parts[0] - 1, parts[1]);
+    if (target < today) target = new Date(now.getFullYear() + 1, parts[0] - 1, parts[1]);
+    return Math.round((target - today) / 86400000);
+}
+
+// 环保咨询：真实机构官网
+const ECO_SITES = [
+    { name: "中华人民共和国生态环境部", url: "https://www.mee.gov.cn", emoji: "🏛️", tag: "政府机构", desc: "国家生态环境保护主管部门，发布环保政策法规与空气质量信息。" },
+    { name: "中国环境网（中国环境报）", url: "https://www.cenews.com.cn", emoji: "📰", tag: "政府机构", desc: "生态环境领域权威媒体，提供环保新闻与政策解读。" },
+    { name: "中国环境监测总站", url: "https://www.cnemc.cn", emoji: "💧", tag: "政府机构", desc: "发布全国空气质量、水质等环境监测数据。" },
+    { name: "自然资源部", url: "https://www.mnr.gov.cn", emoji: "🗺️", tag: "政府机构", desc: "负责自然资源调查监测与国土空间生态保护修复。" },
+    { name: "国家林业和草原局", url: "https://www.forestry.gov.cn", emoji: "🌲", tag: "政府机构", desc: "主管森林、草原、湿地资源保护与生态修复。" },
+    { name: "联合国环境规划署（UNEP）", url: "https://www.unep.org/zh-hans", emoji: "🌍", tag: "国际组织", desc: "联合国环境事务牵头机构，发布全球环境评估报告。" },
+    { name: "联合国气候变化框架公约（UNFCCC）", url: "https://unfccc.int", emoji: "🌡️", tag: "国际组织", desc: "《巴黎协定》与历届气候大会官方信息平台。" },
+    { name: "世界资源研究所（WRI）中国", url: "https://wri.org.cn", emoji: "📊", tag: "国际组织", desc: "提供城市、能源与气候领域研究报告与数据。" },
+    { name: "世界自然基金会（WWF）中国", url: "https://www.wwfchina.org", emoji: "🐼", tag: "公益组织", desc: "全球自然保护组织，开展物种保护与气候项目。" },
+    { name: "绿色和平（中国）", url: "https://www.greenpeace.org.cn", emoji: "🌱", tag: "公益组织", desc: "关注气候变化、能源转型与生态保护的公益组织。" },
+    { name: "中国生物多样性保护与绿色发展基金会", url: "https://www.cbcgdf.org", emoji: "🦋", tag: "公益组织", desc: "专注生物多样性保护与绿色发展的公益基金会。" }
+];
+
 // 渲染打卡卡片
 function renderCheckinCards() {
     const el = document.getElementById("checkinCards");
@@ -166,7 +252,7 @@ function renderCheckinCards() {
                     </div>
                 </button>
             `;
-        }).join("");
+        });
     } else {
         hint = `<button class="checkin-hint" onclick="location.href='login.html'">登录后即可参与低碳打卡 →</button>`;
         const kinds = ["walk", "cup", "recycle"];
@@ -183,7 +269,7 @@ function renderCheckinCards() {
                     </div>
                 </button>
             `;
-        }).join("");
+        });
     }
 
     el.innerHTML = `
@@ -192,8 +278,9 @@ function renderCheckinCards() {
             <span style="font-size:14px;color:var(--text-muted);">${user ? `今日已获 ${getEcoSummary(user.id).todayPoints} 积分` : ''}</span>
         </div>
         ${hint}
-        <div class="checkin-grid">${cards}</div>
+        ${carouselHTML("checkinCarousel", cards)}
     `;
+    initCarousel("checkinCarousel", cards.length, 1000);
 }
 
 // 渲染活动列表
@@ -201,7 +288,11 @@ function renderEventsPreview() {
     const el = document.getElementById("eventsPreview");
     if (!el) return;
     const events = getActivities().slice(0, 4);
-    el.innerHTML = events.map(e => `
+    if (events.length === 0) {
+        el.innerHTML = `<div class="empty-state"><p>暂无活动</p></div>`;
+        return;
+    }
+    const slides = events.map(e => `
         <div class="event-item" style="cursor:pointer;" onclick="location.href='activities.html'">
             <div class="event-thumb">${e.emoji}</div>
             <div class="event-info">
@@ -215,7 +306,9 @@ function renderEventsPreview() {
                 </div>
             </div>
         </div>
-    `).join("");
+    `);
+    el.innerHTML = carouselHTML("eventsCarousel", slides);
+    initCarousel("eventsCarousel", slides.length, 1000);
 }
 
 // 渲染学院排行（真实数据）
@@ -289,26 +382,62 @@ function renderTips() {
     `).join("");
 }
 
-// 渲染重要环保日期
+// 渲染重要环保日期（卡片翻滚 + 倒计时）
 function renderEcoDates() {
     const el = document.getElementById("ecoDatesGrid");
     if (!el) return;
-    const today = new Date();
-    const todayStr = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-    el.innerHTML = ECO_DATES.map(d => {
-        const isToday = d.date === todayStr;
+    const slides = ECO_DATES.map(d => {
+        const days = daysUntilDate(d.date);
+        const isToday = days === 0;
         return `
-            <div class="checkin-card" style="${isToday ? 'border-color:var(--primary);box-shadow:0 0 0 2px var(--primary);' : ''}min-height:auto;padding:16px;">
-                <div class="checkin-icon" style="width:36px;height:36px;font-size:18px;background:var(--emerald-100);margin-bottom:8px;">${d.emoji}</div>
-                <h3 style="font-size:14px;">${d.name} ${isToday ? '<span style="color:var(--primary);font-size:11px;">· 今天</span>' : ''}</h3>
-                <p class="desc" style="font-size:12px;">${d.date} · ${d.desc}</p>
-                <div class="badges" style="margin-top:6px;">
-                    <button class="btn btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="shareEcoDate('${d.name}','${d.date}','${d.desc}')">📤 分享</button>
+            <div class="checkin-card" style="min-height:auto;padding:18px;${isToday ? 'border-color:var(--primary);' : ''}">
+                <div class="checkin-icon" style="width:40px;height:40px;font-size:20px;background:var(--emerald-100);margin-bottom:10px;">${d.emoji}</div>
+                <h3 style="font-size:16px;">${d.name}</h3>
+                <p class="desc" style="font-size:13px;">${d.date} · ${d.desc}</p>
+                <div class="badges" style="margin-top:10px;align-items:center;gap:8px;">
+                    <span class="date-countdown ${isToday ? 'today' : ''}">${isToday ? '🎉 就是今天' : `还有 ${days} 天`}</span>
+                    <button class="btn btn-ghost" style="padding:3px 10px;font-size:12px;" onclick="shareEcoDate('${d.name}','${d.date}','${d.desc}')">📤 分享</button>
                 </div>
             </div>
         `;
-    }).join("");
+    });
+    el.innerHTML = carouselHTML("ecoDatesCarousel", slides);
+    initCarousel("ecoDatesCarousel", slides.length, 1000);
+}
+
+// 渲染首页环保咨询：机构官网轮播 + 最新资讯
+function renderConsult() {
+    const siteEl = document.getElementById("consultCarousel");
+    if (siteEl) {
+        const slides = ECO_SITES.map(s => `
+            <div class="checkin-card" style="min-height:auto;padding:18px;">
+                <div class="checkin-icon" style="width:40px;height:40px;font-size:20px;background:var(--emerald-100);margin-bottom:10px;">${s.emoji}</div>
+                <h3 style="font-size:15px;">${s.name}</h3>
+                <p class="desc" style="font-size:12px;">${s.desc}</p>
+                <div class="badges" style="margin-top:10px;align-items:center;gap:8px;">
+                    <span class="badge-points badge-recycle">${s.tag}</span>
+                    <a class="btn btn-outline" style="padding:3px 10px;font-size:12px;" href="${s.url}" target="_blank" rel="noopener noreferrer">访问官网 →</a>
+                </div>
+            </div>
+        `);
+        siteEl.innerHTML = carouselHTML("consultSiteCarousel", slides);
+        initCarousel("consultSiteCarousel", slides.length, 1000);
+    }
+
+    const newsEl = document.getElementById("consultNews");
+    if (newsEl) {
+        newsEl.innerHTML = ECO_NEWS.slice(0, 4).map(n => `
+            <div class="consult-news-item">
+                <div style="font-size:22px;">${n.emoji}</div>
+                <div class="consult-news-body">
+                    <div class="consult-news-title">${n.title}</div>
+                    <div class="consult-news-desc">${n.desc}</div>
+                </div>
+                <button class="btn btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="shareNews('${n.title}','${n.desc}')">📤</button>
+            </div>
+        `).join("");
+    }
 }
 
 function shareEcoDate(name, date, desc) {
@@ -522,6 +651,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try { renderRanking(); } catch(e) { console.error(e); }
     try { renderNews(); } catch(e) { console.error(e); }
     try { renderEcoDates(); } catch(e) { console.error(e); }
+    try { renderConsult(); } catch(e) { console.error(e); }
     try { renderTips(); } catch(e) { console.error(e); }
     try { renderActivities(); } catch(e) { console.error(e); }
 });
